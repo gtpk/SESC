@@ -18,8 +18,9 @@ from ism.experiments.budgets import (
     build_budget_matrix,
 )
 from ism.experiments.conditions import build_condition_matrix
+from ism.inference.factory import build_text_generator
 from ism.inference.mock import MockTextGenerator
-from ism.inference.pipeline import run_mock_pipeline
+from ism.inference.pipeline import run_pipeline
 from ism.planning import build_execution_plan, estimate_server_requirements
 from ism.representation.tokenizer import WhitespaceTokenCounter
 
@@ -55,6 +56,15 @@ def build_parser() -> argparse.ArgumentParser:
     mock_run.add_argument("--output", required=True, type=Path)
     mock_run.add_argument("--batch-size", type=int, default=1)
     mock_run.add_argument("--resume", action="store_true")
+
+    run = subparsers.add_parser(
+        "run",
+        help="run the inference pipeline with the backend selected in the config",
+    )
+    run.add_argument("--config", required=True, type=Path)
+    run.add_argument("--output", required=True, type=Path)
+    run.add_argument("--batch-size", type=int, default=1)
+    run.add_argument("--resume", action="store_true")
 
     audit = subparsers.add_parser(
         "audit-conditions",
@@ -123,10 +133,28 @@ def main(argv: Sequence[str] | None = None) -> None:
             )
             return
         if args.command == "run-mock":
-            summary = run_mock_pipeline(
+            summary = run_pipeline(
                 config,
                 output_dir=args.output,
                 generator=MockTextGenerator(),
+                batch_size=args.batch_size,
+                resume=args.resume,
+            )
+            sys.stdout.write(
+                json.dumps(
+                    summary.__dict__,
+                    ensure_ascii=False,
+                    indent=2,
+                    sort_keys=True,
+                )
+                + "\n"
+            )
+            return
+        if args.command == "run":
+            summary = run_pipeline(
+                config,
+                output_dir=args.output,
+                generator=build_text_generator(config),
                 batch_size=args.batch_size,
                 resume=args.resume,
             )

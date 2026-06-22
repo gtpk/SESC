@@ -13,6 +13,17 @@ dependencies = [
   "pyyaml>=6.0.2,<7",
 ]
 
+[project.optional-dependencies]
+# Real-model inference backend. Installed only in GPU environments (e.g. Colab).
+# torch is intentionally excluded: Colab ships a CUDA-matched build, and pinning
+# it here would risk reinstalling/breaking that build. The core package and the
+# full test suite never import these — see src/ism/inference/transformers_backend.py.
+gpu = [
+  "transformers>=4.44,<5",
+  "accelerate>=0.33",
+  "bitsandbytes>=0.43",
+]
+
 [project.scripts]
 ism = "ism.cli:main"
 

@@ -26,7 +26,7 @@ class PipelineSummary:
     artifact_dir: str
 
 
-def run_mock_pipeline(
+def run_pipeline(
     config: AppConfig,
     *,
     output_dir: Path,
@@ -93,6 +93,11 @@ def run_mock_pipeline(
         },
     )
     return summary
+
+
+# Backward-compatible alias: the pipeline is backend-agnostic (it accepts any
+# TextGenerator), so it is no longer mock-specific.
+run_mock_pipeline = run_pipeline
 
 
 def _write_json_atomic(path: Path, payload: dict[str, Any]) -> None:
