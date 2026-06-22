@@ -11,6 +11,8 @@ from pydantic import ValidationError
 from ism.config import load_config
 from ism.data.generator import SyntheticGenerator
 from ism.data.io import write_documents
+from ism.inference.mock import MockTextGenerator
+from ism.inference.pipeline import run_mock_pipeline
 from ism.planning import build_execution_plan
 
 
@@ -36,6 +38,15 @@ def build_parser() -> argparse.ArgumentParser:
     )
     generate.add_argument("--config", required=True, type=Path)
     generate.add_argument("--output", required=True, type=Path)
+
+    mock_run = subparsers.add_parser(
+        "run-mock",
+        help="run the local CPU inference pipeline with the mock adapter",
+    )
+    mock_run.add_argument("--config", required=True, type=Path)
+    mock_run.add_argument("--output", required=True, type=Path)
+    mock_run.add_argument("--batch-size", type=int, default=1)
+    mock_run.add_argument("--resume", action="store_true")
     return parser
 
 
@@ -69,6 +80,24 @@ def main(argv: Sequence[str] | None = None) -> None:
             }
             sys.stdout.write(
                 json.dumps(payload, ensure_ascii=False, indent=2, sort_keys=True) + "\n"
+            )
+            return
+        if args.command == "run-mock":
+            summary = run_mock_pipeline(
+                config,
+                output_dir=args.output,
+                generator=MockTextGenerator(),
+                batch_size=args.batch_size,
+                resume=args.resume,
+            )
+            sys.stdout.write(
+                json.dumps(
+                    summary.__dict__,
+                    ensure_ascii=False,
+                    indent=2,
+                    sort_keys=True,
+                )
+                + "\n"
             )
             return
         parser.error(f"unsupported command: {args.command}")

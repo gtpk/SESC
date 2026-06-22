@@ -26,6 +26,7 @@ def test_p0_reg_001_help_succeeds() -> None:
     assert "validate-config" in result.stdout
     assert "dry-run" in result.stdout
     assert "generate-synthetic" in result.stdout
+    assert "run-mock" in result.stdout
 
 
 def test_p0_reg_001_validate_config_succeeds() -> None:
@@ -72,3 +73,27 @@ def test_p1_cli_001_generate_synthetic(tmp_path: Path) -> None:
     assert payload["questions"] == 6
     assert output.exists()
     assert len(output.read_text(encoding="utf-8").splitlines()) == 3
+
+
+def test_p3_int_001_run_mock_end_to_end(tmp_path: Path) -> None:
+    output = tmp_path / "mock-run"
+
+    result = run_cli(
+        "run-mock",
+        "--config",
+        str(SMOKE_CONFIG),
+        "--output",
+        str(output),
+        "--batch-size",
+        "4",
+    )
+
+    assert result.returncode == 0, result.stderr
+    payload = json.loads(result.stdout)
+    assert payload["documents"] == 3
+    assert payload["questions"] == 6
+    assert payload["predictions"] == 18
+    assert payload["accuracy"] == 1
+    assert (output / "predictions.jsonl").exists()
+    assert (output / "metrics.json").exists()
+    assert (output / "manifest.json").exists()
