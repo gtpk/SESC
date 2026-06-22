@@ -9,6 +9,8 @@ from pathlib import Path
 from pydantic import ValidationError
 
 from ism.config import load_config
+from ism.data.generator import SyntheticGenerator
+from ism.data.io import write_documents
 from ism.planning import build_execution_plan
 
 
@@ -27,6 +29,13 @@ def build_parser() -> argparse.ArgumentParser:
         help="validate config and print the bounded execution plan",
     )
     dry_run.add_argument("--config", required=True, type=Path)
+
+    generate = subparsers.add_parser(
+        "generate-synthetic",
+        help="generate a bounded synthetic dataset from an experiment config",
+    )
+    generate.add_argument("--config", required=True, type=Path)
+    generate.add_argument("--output", required=True, type=Path)
     return parser
 
 
@@ -42,6 +51,21 @@ def main(argv: Sequence[str] | None = None) -> None:
             payload = {
                 "config_hash": config.config_hash(),
                 "plan": build_execution_plan(config).to_dict(),
+            }
+            sys.stdout.write(
+                json.dumps(payload, ensure_ascii=False, indent=2, sort_keys=True) + "\n"
+            )
+            return
+        if args.command == "generate-synthetic":
+            documents = SyntheticGenerator(config.experiment.seed).generate(
+                config.dataset.max_documents,
+                split=config.experiment.split.value,
+            )
+            write_documents(args.output, documents)
+            payload = {
+                "documents": len(documents),
+                "output": str(args.output.resolve()),
+                "questions": sum(len(item.questions) for item in documents),
             }
             sys.stdout.write(
                 json.dumps(payload, ensure_ascii=False, indent=2, sort_keys=True) + "\n"

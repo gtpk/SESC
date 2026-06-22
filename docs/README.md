@@ -7,7 +7,7 @@
 | Phase | 범위 | 상태 | 완료 보고서 |
 |---|---|---|---|
 | 0 | 프로젝트 골격, 설정, CLI, 로깅, 비용 dry-run | 완료 | [Phase 0](phases/phase-0-foundation.md) |
-| 1 | Synthetic rule graph와 executor | 대기 | - |
+| 1 | Synthetic rule graph와 executor | 완료 | [Phase 1](phases/phase-1-synthetic-engine.md) |
 | 2 | ISM 표현, parser, intervention | 대기 | - |
 | 3 | Inference pipeline과 resume/cache | 대기 | - |
 | 4 | Ablation orchestration | 대기 | - |

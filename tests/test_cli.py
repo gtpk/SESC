@@ -25,6 +25,7 @@ def test_p0_reg_001_help_succeeds() -> None:
     assert result.returncode == 0
     assert "validate-config" in result.stdout
     assert "dry-run" in result.stdout
+    assert "generate-synthetic" in result.stdout
 
 
 def test_p0_reg_001_validate_config_succeeds() -> None:
@@ -52,3 +53,22 @@ def test_p0_err_001_invalid_arguments_fail() -> None:
 
     assert result.returncode != 0
     assert "invalid choice" in result.stderr
+
+
+def test_p1_cli_001_generate_synthetic(tmp_path: Path) -> None:
+    output = tmp_path / "synthetic.jsonl"
+
+    result = run_cli(
+        "generate-synthetic",
+        "--config",
+        str(SMOKE_CONFIG),
+        "--output",
+        str(output),
+    )
+
+    assert result.returncode == 0, result.stderr
+    payload = json.loads(result.stdout)
+    assert payload["documents"] == 3
+    assert payload["questions"] == 6
+    assert output.exists()
+    assert len(output.read_text(encoding="utf-8").splitlines()) == 3
