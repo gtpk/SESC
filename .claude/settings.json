@@ -1,0 +1,28 @@
+{
+  "env": {
+    "ENABLE_LSP_TOOL": "1"
+  },
+  "permissions": {
+    "allow": [
+      "Bash(dotnet tool install --global roslyn-language-server --prerelease)",
+      "Bash(dotnet --version)",
+      "Bash(dotnet tool search roslyn-language-server --prerelease --take 10)",
+      "Bash(dotnet tool install --global roslyn-language-server --version 5.5.0-2.26078.4)",
+      "Bash(dotnet --list-sdks)",
+      "Bash(where.exe roslyn-language-server)",
+      "Bash",
+      "Edit",
+      "Write",
+      "Read",
+      "Grep",
+      "Glob",
+      "mcp__*"
+    ]
+  },
+  "enabledPlugins": {},
+  "mcpServers": {
+    "csharp": {
+      "command": "C:\\repo\\csharp-lsp-mcp\\csharp-lsp-mcp\\src\\CSharpLspMcp\\bin\\Release\\net8.0\\csharp-lsp-mcp.exe"
+    }
+  }
+}

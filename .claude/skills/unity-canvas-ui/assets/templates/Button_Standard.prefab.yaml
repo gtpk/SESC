@@ -1,0 +1,66 @@
+# Button 표준 템플릿 — 해상도에 유연하게 동작하는 버튼 YAML 스니펫
+#
+# 구조:
+#   Button_Root (RectTransform 크기: 240x72, anchor은 배치에 따라)
+#   ├── Background (Image, full stretch, offset=0)
+#   ├── Icon      (선택, 좌측 고정, 32x32)
+#   └── Label     (TMP, full stretch with padding=12, Middle-Center)
+#
+# 이 파일은 참조용 의사 YAML이다. 실제 prefab으로 쓰려면 fileID와 GUID를 Unity가
+# 생성하게 두고, 이 구조/수치만 따라한다. Claude가 UI를 생성할 때는 이 구조를
+# 먼저 사용자에게 설명하고, 실제 prefab 작성은 Unity 에디터나 스크립트로 한다.
+
+# --- Button_Root (GameObject + RectTransform + Image + Button)
+Button_Root:
+  RectTransform:
+    m_AnchorMin: {x: 0.5, y: 0.5}   # 배치 위치에 따라 조정. 중앙 예시.
+    m_AnchorMax: {x: 0.5, y: 0.5}
+    m_Pivot: {x: 0.5, y: 0.5}
+    m_AnchoredPosition: {x: 0, y: 0}
+    m_SizeDelta: {x: 240, y: 72}
+  Image:
+    m_Color: {r: 0.2, g: 0.4, b: 0.8, a: 1}
+    m_Sprite: <Button sprite>
+    m_Type: 1  # Sliced
+  Button:
+    m_Navigation: {m_Mode: 3}
+    m_Transition: 1  # ColorTint
+
+# --- Background는 생략: 위 Image가 버튼 배경 역할도 겸함.
+#     배경을 따로 두고 싶다면 (다중 레이어 디자인) 자식으로 분리 가능.
+
+# --- Icon (선택)
+Icon:
+  RectTransform:
+    # 좌측 중앙 고정
+    m_AnchorMin: {x: 0, y: 0.5}
+    m_AnchorMax: {x: 0, y: 0.5}
+    m_Pivot: {x: 0, y: 0.5}
+    m_AnchoredPosition: {x: 16, y: 0}   # 좌측 여백 16
+    m_SizeDelta: {x: 32, y: 32}
+  Image:
+    m_PreserveAspect: 1
+    m_Sprite: <Icon sprite>
+
+# --- Label (TMP)
+Label:
+  RectTransform:
+    # Full stretch + padding
+    m_AnchorMin: {x: 0, y: 0}
+    m_AnchorMax: {x: 1, y: 1}
+    m_Pivot: {x: 0.5, y: 0.5}
+    m_AnchoredPosition: {x: 0, y: 0}
+    # SizeDelta가 음수인 이유: stretch anchor에서 "자기 영역보다 얼마나 작게"
+    # 즉 좌우 합 24 (각 12), 상하 합 24 (각 12)만큼 여백.
+    # 이는 anti-pattern의 "음수 offset"과는 다르다 (여기서는 "양수 padding"의 정상 표현).
+    m_SizeDelta: {x: -24, y: -24}
+  TextMeshProUGUI:
+    m_text: "확인"
+    m_fontSize: 32
+    m_enableAutoSizing: 0           # 기본 끔
+    m_fontSizeMin: 28               # 켤 때 대비 좁은 범위 설정
+    m_fontSizeMax: 34
+    m_HorizontalAlignment: 2        # Center
+    m_VerticalAlignment: 512        # Middle
+    m_textWrappingMode: 0           # NoWrap (버튼 라벨은 보통 줄바꿈 없음)
+    m_overflowMode: 1               # Ellipsis
