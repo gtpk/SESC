@@ -2,6 +2,7 @@
 .claude/scheduled_tasks.lock
 .claude/scheduled_tasks.json
 .venv/
+.DS_Store
 __pycache__/
 *.py[cod]
 .pytest_cache/
