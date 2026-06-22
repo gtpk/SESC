@@ -14,7 +14,7 @@
 | 5 | Fixed-Budget orchestration | 완료 | [Phase 5](phases/phase-5-budgets.md) |
 | 6 | Reuse와 cache 비용 계산 | 완료 | [Phase 6](phases/phase-6-cache-cost.md) |
 | 7 | Swap LoRA local contract | 완료 | [Phase 7](phases/phase-7-swap-training.md) |
-| 8 | QASPER adapter | 대기 | - |
+| 8 | QASPER adapter | 완료 | [Phase 8](phases/phase-8-qasper.md) |
 | 9 | Main run, 통계, 보고 | 대기 | - |
 
 ## 문서 구분

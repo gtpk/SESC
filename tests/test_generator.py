@@ -3,6 +3,7 @@ from __future__ import annotations
 import hashlib
 import json
 
+from ism.data.contracts import AnswerType, QuestionRecord
 from ism.data.generator import SyntheticGenerator
 from ism.data.render import render_graph
 from ism.data.rules import RuleKind
@@ -71,3 +72,12 @@ def test_renderer_does_not_mutate_graph() -> None:
 
     assert rendered
     assert graph.stable_json() == before
+
+
+def test_synthetic_questions_use_common_question_record_contract() -> None:
+    question = SyntheticGenerator(42).generate(1)[0].questions[0]
+
+    record = question.to_record()
+
+    assert isinstance(record, QuestionRecord)
+    assert record.answers[0].answer_type is AnswerType.CLASSIFICATION

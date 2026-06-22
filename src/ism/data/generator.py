@@ -3,6 +3,7 @@ from __future__ import annotations
 import random
 from dataclasses import dataclass
 
+from ism.data.contracts import AnswerRecord, AnswerType, QuestionRecord
 from ism.data.render import render_graph
 from ism.data.rules import (
     Condition,
@@ -25,6 +26,24 @@ class GeneratedQuestion:
     answer_type: str
     required_rule_ids: tuple[str, ...]
     ood_type: str | None = None
+
+    def to_record(self) -> QuestionRecord:
+        answer_type = {
+            "classification": AnswerType.CLASSIFICATION,
+            "boolean": AnswerType.BOOLEAN,
+        }[self.answer_type]
+        return QuestionRecord(
+            question_id=self.question_id,
+            document_id=self.document_id,
+            question=self.question,
+            answers=(
+                AnswerRecord(
+                    text=self.answer,
+                    answer_type=answer_type,
+                    evidence=(),
+                ),
+            ),
+        )
 
 
 @dataclass(frozen=True)
