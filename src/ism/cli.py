@@ -23,6 +23,7 @@ from ism.experiments.compression_audit import run_compression_audit
 from ism.experiments.conditions import build_condition_matrix
 from ism.experiments.fixed_budget import merge_fixed_budget, run_fixed_budget_experiment
 from ism.experiments.methods import FIXED_BUDGET_METHODS
+from ism.experiments.reuse import run_reuse_experiment
 from ism.inference.factory import build_text_generator
 from ism.inference.mock import MockTextGenerator
 from ism.inference.pipeline import run_pipeline
@@ -119,6 +120,16 @@ def build_parser() -> argparse.ArgumentParser:
     merge_fb.add_argument("--config", required=True, type=Path)
     merge_fb.add_argument("--output", required=True, type=Path)
     merge_fb.add_argument("--shards", required=True, nargs="+", type=Path)
+
+    reuse = subparsers.add_parser(
+        "run-reuse",
+        help="experiment 6.4: reuse cost/accuracy tradeoff (analytic, from a fixed-budget summary)",
+    )
+    reuse.add_argument("--config", required=True, type=Path)
+    reuse.add_argument("--output", required=True, type=Path)
+    reuse.add_argument("--fixed-budget-summary", required=True, type=Path)
+    reuse.add_argument("--budget", required=True, type=int)
+    reuse.add_argument("--ns", type=int, nargs="+", default=[1, 2, 4, 8, 16, 32, 64])
 
     audit = subparsers.add_parser(
         "audit-conditions",
@@ -286,6 +297,18 @@ def main(argv: Sequence[str] | None = None) -> None:
             )
             sys.stdout.write(
                 json.dumps(asdict(merged), ensure_ascii=False, indent=2, sort_keys=True) + "\n"
+            )
+            return
+        if args.command == "run-reuse":
+            reuse = run_reuse_experiment(
+                config,
+                output_dir=args.output,
+                fixed_budget_summary=args.fixed_budget_summary,
+                budget=args.budget,
+                ns=tuple(args.ns),
+            )
+            sys.stdout.write(
+                json.dumps(asdict(reuse), ensure_ascii=False, indent=2, sort_keys=True) + "\n"
             )
             return
         if args.command == "audit-conditions":
