@@ -1,0 +1,213 @@
+{
+  "budgets": [
+    64,
+    128,
+    256,
+    512
+  ],
+  "documents": 10,
+  "methods": [
+    "full_context",
+    "ism",
+    "model_summary",
+    "keyword_extract",
+    "oracle_gold_summary"
+  ],
+  "predictions": 320,
+  "results": [
+    {
+      "accuracy": 0.7,
+      "accuracy_retention": 1.0,
+      "budget": 0,
+      "compression_ratio": 1.0,
+      "efficiency_score": 1.0,
+      "failed_docs": 0,
+      "mean_tokens": 1262.0,
+      "method": "full_context",
+      "produced_docs": 10,
+      "questions": 20
+    },
+    {
+      "accuracy": 0.6,
+      "accuracy_retention": 0.8571428571428572,
+      "budget": 128,
+      "compression_ratio": 0.07670364500792393,
+      "efficiency_score": 11.17473435655254,
+      "failed_docs": 0,
+      "mean_tokens": 96.8,
+      "method": "ism",
+      "produced_docs": 10,
+      "questions": 20
+    },
+    {
+      "accuracy": 0.6,
+      "accuracy_retention": 0.8571428571428572,
+      "budget": 256,
+      "compression_ratio": 0.07805071315372425,
+      "efficiency_score": 10.981870920957215,
+      "failed_docs": 0,
+      "mean_tokens": 98.5,
+      "method": "ism",
+      "produced_docs": 10,
+      "questions": 20
+    },
+    {
+      "accuracy": 0.6,
+      "accuracy_retention": 0.8571428571428572,
+      "budget": 512,
+      "compression_ratio": 0.07923930269413629,
+      "efficiency_score": 10.817142857142859,
+      "failed_docs": 0,
+      "mean_tokens": 100.0,
+      "method": "ism",
+      "produced_docs": 10,
+      "questions": 20
+    },
+    {
+      "accuracy": 0.9,
+      "accuracy_retention": 1.2857142857142858,
+      "budget": 64,
+      "compression_ratio": 0.01671949286846276,
+      "efficiency_score": 76.89911983750847,
+      "failed_docs": 0,
+      "mean_tokens": 21.1,
+      "method": "model_summary",
+      "produced_docs": 10,
+      "questions": 20
+    },
+    {
+      "accuracy": 0.85,
+      "accuracy_retention": 1.2142857142857144,
+      "budget": 128,
+      "compression_ratio": 0.01917591125198098,
+      "efficiency_score": 63.32349468713106,
+      "failed_docs": 0,
+      "mean_tokens": 24.2,
+      "method": "model_summary",
+      "produced_docs": 10,
+      "questions": 20
+    },
+    {
+      "accuracy": 0.95,
+      "accuracy_retention": 1.3571428571428572,
+      "budget": 256,
+      "compression_ratio": 0.06822503961965135,
+      "efficiency_score": 19.89215198274432,
+      "failed_docs": 0,
+      "mean_tokens": 86.1,
+      "method": "model_summary",
+      "produced_docs": 10,
+      "questions": 20
+    },
+    {
+      "accuracy": 0.85,
+      "accuracy_retention": 1.2142857142857144,
+      "budget": 512,
+      "compression_ratio": 0.09144215530903328,
+      "efficiency_score": 13.27927704877445,
+      "failed_docs": 0,
+      "mean_tokens": 115.4,
+      "method": "model_summary",
+      "produced_docs": 10,
+      "questions": 20
+    },
+    {
+      "accuracy": 0.6,
+      "accuracy_retention": 0.8571428571428572,
+      "budget": 64,
+      "compression_ratio": 0.05071315372424723,
+      "efficiency_score": 16.901785714285715,
+      "failed_docs": 0,
+      "mean_tokens": 64.0,
+      "method": "keyword_extract",
+      "produced_docs": 10,
+      "questions": 20
+    },
+    {
+      "accuracy": 0.55,
+      "accuracy_retention": 0.7857142857142858,
+      "budget": 128,
+      "compression_ratio": 0.10142630744849446,
+      "efficiency_score": 7.7466517857142865,
+      "failed_docs": 0,
+      "mean_tokens": 128.0,
+      "method": "keyword_extract",
+      "produced_docs": 10,
+      "questions": 20
+    },
+    {
+      "accuracy": 0.55,
+      "accuracy_retention": 0.7857142857142858,
+      "budget": 256,
+      "compression_ratio": 0.18177496038034865,
+      "efficiency_score": 4.3224560966496455,
+      "failed_docs": 0,
+      "mean_tokens": 229.4,
+      "method": "keyword_extract",
+      "produced_docs": 10,
+      "questions": 20
+    },
+    {
+      "accuracy": 0.6,
+      "accuracy_retention": 0.8571428571428572,
+      "budget": 512,
+      "compression_ratio": 0.20681458003169573,
+      "efficiency_score": 4.144499178981937,
+      "failed_docs": 0,
+      "mean_tokens": 261.0,
+      "method": "keyword_extract",
+      "produced_docs": 10,
+      "questions": 20
+    },
+    {
+      "accuracy": 0.6,
+      "accuracy_retention": 0.8571428571428572,
+      "budget": 64,
+      "compression_ratio": 0.04675118858954041,
+      "efficiency_score": 18.334140435835355,
+      "failed_docs": 0,
+      "mean_tokens": 59.0,
+      "method": "oracle_gold_summary",
+      "produced_docs": 10,
+      "questions": 20
+    },
+    {
+      "accuracy": 0.6,
+      "accuracy_retention": 0.8571428571428572,
+      "budget": 128,
+      "compression_ratio": 0.06973058637083994,
+      "efficiency_score": 12.292207792207792,
+      "failed_docs": 0,
+      "mean_tokens": 88.0,
+      "method": "oracle_gold_summary",
+      "produced_docs": 10,
+      "questions": 20
+    },
+    {
+      "accuracy": 0.6,
+      "accuracy_retention": 0.8571428571428572,
+      "budget": 256,
+      "compression_ratio": 0.06973058637083994,
+      "efficiency_score": 12.292207792207792,
+      "failed_docs": 0,
+      "mean_tokens": 88.0,
+      "method": "oracle_gold_summary",
+      "produced_docs": 10,
+      "questions": 20
+    },
+    {
+      "accuracy": 0.6,
+      "accuracy_retention": 0.8571428571428572,
+      "budget": 512,
+      "compression_ratio": 0.06973058637083994,
+      "efficiency_score": 12.292207792207792,
+      "failed_docs": 0,
+      "mean_tokens": 88.0,
+      "method": "oracle_gold_summary",
+      "produced_docs": 10,
+      "questions": 20
+    }
+  ],
+  "run_id": "fixed-budget-qwen7b-long",
+  "successful": 320
+}

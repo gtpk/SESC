@@ -436,6 +436,37 @@ config_hash `15c72cfd…`, commit `7be5618`, 압축 20/20.
 
 ### 8.3 Fixed-Budget Comparison
 
+#### 8.3.1 예비 결과 (long-context smoke — N=10 문서)
+
+> **주의:** 파이프라인·budget fairness 검증용 smoke다(N=10 문서 / 20 문항, 단일 seed,
+> 통계 아님). 문서는 long-context 프로파일(700–2000 토큰, full_context 평균 1262)로,
+> 예산 64–512가 실제 압축이 되도록 했다. LLMLingua-2는 미구현으로 제외. 증거:
+> [docs/evidence/fixed-budget-long-smoke/](../docs/evidence/fixed-budget-long-smoke/README.md),
+> config `fixed_budget_qwen7b_long`, commit `714eff1`. 셀 값은 `AR / ES`.
+
+| 방법 | 64 | 128 | 256 | 512 |
+|---|---:|---:|---:|---:|
+| Oracle Gold Summary | 0.86 / 18.3 | 0.86 / 12.3 | 0.86 / 12.3 | 0.86 / 12.3 |
+| Model Summary | **1.29 / 76.9** | 1.21 / 63.3 | **1.36 / 19.9** | 1.21 / 13.3 |
+| Keyword Extract | 0.86 / 16.9 | 0.79 / 7.7 | 0.79 / 4.3 | 0.86 / 4.1 |
+| LLMLingua-2 | — | — | — | — |
+| ISM | (floor 실패) | 0.86 / 11.2 | 0.86 / 11.0 | 0.86 / 10.8 |
+
+Full Context 기준: Accuracy 0.70 (AR 1.000, CR 1.000). ISM은 표현 floor(~100 whitespace 토큰)로
+budget 64를 충족하지 못해 미생성(stress point).
+
+예비 보고:
+
+> 이 smoke에서 Model Summary는 모든 예산에서 ISM보다 높은 AR과 ES를 보였고, 다수 셀에서
+> AR > 1(Full Context 초과)이었다. 이는 1262토큰 문서의 상당 부분이 중립 filler이기 때문으로,
+> 요약이 과제 관련 규칙만 추출해 노이즈를 제거한 효과로 보인다. ISM은 AR 0.86 / ES ~11로
+> keyword·oracle 수준이며 summary보다 낮았다. 따라서 부록 A 기준 #1(ISM > Model Summary)은
+> 이 규모에서 충족되지 않을 가능성이 크다. 6.1에서 ISM의 심볼 구조·사전 내용 사용이 입증된
+> 점과 종합하면, ISM의 차별점은 **토큰 효율이 아니라 검사·개입 가능성**으로 해석하는 것이
+> 타당하다(§9.3). 통계 확정은 더 큰 N에서 수행한다.
+
+#### 8.3.2 등록 규모 결과 (실험 완료 후 채움)
+
 | 방법 | 64 | 128 | 256 | 512 |
 |---|---:|---:|---:|---:|
 | Oracle Gold Summary | [ ] | [ ] | [ ] | [ ] |

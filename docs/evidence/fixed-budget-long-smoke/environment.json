@@ -1,0 +1,7 @@
+{
+  "commit": "714eff1",
+  "gpu": "Tesla T4",
+  "elapsed_s": 2757.3,
+  "docs": 10,
+  "note": "long-context 700-2000 tok, N=20 questions, smoke"
+}
