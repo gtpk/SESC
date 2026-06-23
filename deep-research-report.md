@@ -344,31 +344,41 @@ Synthetic Rule-QA에서는 gold graph를 사용해 다음을 추가 분석한다
 
 #### 8.1.1 예비 결과 (dev pilot — 등록 규모 아님)
 
-> **주의:** 아래는 파이프라인 검증용 dev 파일럿이다. N=40 문항(20 문서 × 2 질문),
-> 단일 seed, Qwen2.5-7B-Instruct 4-bit prompt-only이며, ISM 표현은 **gold rule graph로부터
-> 결정적으로 생성**한 것이다(논문 메인 설정인 LLM 압축기 산출물이 아님). 비교군
-> Model Summary는 미구현으로 제외했다. 따라서 RQ1의 결론 근거가 아니라 **예비 신호**다.
-> 증거: [docs/evidence/ablation-qwen7b-dev/](../docs/evidence/ablation-qwen7b-dev/README.md),
-> config_hash `204d4b4b…`, commit `40a23b9`.
+> **주의:** 아래는 dev 파일럿이며 등록 규모가 아니다. Qwen2.5-7B-Instruct 4-bit(압축기=추론기),
+> greedy, 단일 seed. 비교군 Model Summary는 미구현으로 제외했다. RQ1 결론 근거가 아니라
+> **예비 신호**다.
+
+**메인 설정 (LLM 압축기).** ISM을 LLM 압축기로 생성하고 `parse_ism`으로 구조화했다.
+20 문서 중 18개가 유효한 ISM으로 압축됐다(2 실패, 평균 1.06회 생성). N=36 문항.
+증거: [docs/evidence/ablation-qwen7b-llm-dev/](../docs/evidence/ablation-qwen7b-llm-dev/README.md),
+config_hash `204d4b4b…`, commit `eb2bdda`.
 
 | 조건 | Accuracy | AR | CR | ES |
 |---|---:|---:|---:|---:|
-| Full Context | 0.700 | 1.000 | 1.000 | 1.000 |
-| Full Symbol + Dict | 0.550 | 0.786 | 0.818 | 0.960 |
-| Corrupted Dict | 0.550 | 0.786 | 0.818 | 0.960 |
-| Symbol Only | 0.225 | 0.321 | 0.061 | 5.304 |
-| Random Symbol | 0.250 | 0.357 | 0.811 | 0.441 |
+| Full Context | 0.694 | 1.000 | 1.000 | 1.000 |
+| Full Symbol + Dict | 0.500 | 0.720 | 0.562 | 1.280 |
+| Corrupted Dict | 0.528 | 0.760 | 0.562 | 1.352 |
+| Symbol Only | 0.361 | 0.520 | 0.109 | 4.770 |
+| Random Symbol | 0.333 | 0.480 | 0.555 | 0.865 |
 
-- \(\Delta_{\mathrm{map}}\) = Acc(Full+Dict) − Acc(Corrupt) = **0.000**, 95% CI [0.000, 0.000], McNemar p=1.0 (n=40)
-- \(\Delta_{\mathrm{symbol}}\) = Acc(SymbolOnly) − Acc(Random) = **−0.025**, 95% CI [−0.075, 0.000], McNemar p=1.0 (n=40)
+- \(\Delta_{\mathrm{map}}\) = Acc(Full+Dict) − Acc(Corrupt) = **−0.028**, 95% CI [−0.167, 0.083], McNemar p=1.0 (n=36)
+- \(\Delta_{\mathrm{symbol}}\) = Acc(SymbolOnly) − Acc(Random) = **+0.028**, 95% CI [−0.139, 0.194], McNemar p=1.0 (n=36)
 
 예비 보고:
 
-> 이 dev 파일럿에서 Full Symbol + Dict(0.55)와 Corrupted Dict(0.55)는 문항별로 동일한
-> 정오답을 보여 \(\Delta_{\mathrm{map}}=0\)이었고, Symbol Only(0.225)는 Random Symbol(0.25)을
-> 능가하지 못했다(\(\Delta_{\mathrm{symbol}}=-0.025\)). 즉 이 설정에서는 사전 매핑의 기능적
-> 사용 근거가 관찰되지 않았다. 다만 gold-derived 표현·소규모·단일 seed라는 한계가 크므로,
-> 부록 A 기준 #2의 충족 여부는 **LLM 압축기 산출물과 등록 규모 실행 후** 확정한다.
+> LLM 압축기 산출물에서도 Full Symbol + Dict(0.500)와 Corrupted Dict(0.528)의 차이가
+> \(\Delta_{\mathrm{map}}=-0.028\)(95% CI가 0 포함)로 **사전 오염이 정확도를 떨어뜨리지 않았다.**
+> Symbol Only(0.361)는 Random Symbol(0.333)보다 약간 높았으나 유의하지 않았다
+> (\(\Delta_{\mathrm{symbol}}=+0.028\), CI [−0.14, 0.19]). 즉 이 규모에서는 사전 매핑의 기능적
+> 사용 근거가 관찰되지 않으며, 부록 A 기준 #2는 충족되지 않는다.
+
+**강건성 점검 (gold-oracle ISM).** ISM을 gold rule graph로부터 결정적으로 생성한 변형
+(N=40)에서도 동일한 방향이 나타났다: \(\Delta_{\mathrm{map}}=0.000\) (CI [0,0]),
+\(\Delta_{\mathrm{symbol}}=-0.025\) (CI [−0.075, 0]). 증거:
+[docs/evidence/ablation-qwen7b-dev/](../docs/evidence/ablation-qwen7b-dev/README.md).
+
+두 변형 모두 \(\Delta_{\mathrm{map}}\approx 0\)이라는 예비 신호가 일관되나, N이 작고 단일
+seed이므로 RQ1 판정은 **등록 규모(dev 5k) paired evaluation 후** 확정한다.
 
 #### 8.1.2 등록 규모 결과 (실험 완료 후 채움)
 

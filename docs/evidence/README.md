@@ -6,7 +6,8 @@
 |---|---|---|---|
 | S0 | Colab 연결·환경·config parity | PASS | 아래 표 |
 | S1 | GPU 모델 로드 + 1 batch (Qwen2.5-7B 4-bit) | PASS (acc 0.70) | [s1-qwen7b/](s1-qwen7b/README.md) |
-| 6.1 | Dictionary Ablation (dev pilot, N=40) | 예비 (Δmap=0, Δsymbol≈0) | [ablation-qwen7b-dev/](ablation-qwen7b-dev/README.md) |
+| 6.1 (LLM 압축기, 메인) | Dictionary Ablation dev pilot, N=36 | 예비 (Δmap≈0, Δsymbol n.s.) | [ablation-qwen7b-llm-dev/](ablation-qwen7b-llm-dev/README.md) |
+| 6.1 (gold-oracle, 강건성) | Dictionary Ablation dev pilot, N=40 | 예비 (Δmap=0, Δsymbol≈0) | [ablation-qwen7b-dev/](ablation-qwen7b-dev/README.md) |
 
 ## S0 — config parity (COL-ENV-004)
 
