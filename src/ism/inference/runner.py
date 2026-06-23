@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from collections.abc import Iterable
 
+from ism.evaluation.answers import answers_match
 from ism.inference.artifacts import AtomicPredictionStore
 from ism.inference.contracts import (
     ErrorKind,
@@ -110,6 +111,9 @@ class InferenceRunner:
             result = final[request_id]
             sample = samples_by_id[request_id]
             normalized = result.text.strip() if result.text is not None else None
+            correct = normalized is not None and answers_match(
+                normalized, sample.expected_output
+            )
             records.append(
                 PredictionRecord(
                     sample_id=sample.sample_id,
@@ -118,7 +122,7 @@ class InferenceRunner:
                     prediction_raw=result.text,
                     prediction_normalized=normalized,
                     expected_output=sample.expected_output,
-                    correct=normalized == sample.expected_output,
+                    correct=correct,
                     input_tokens=result.input_tokens,
                     output_tokens=result.output_tokens,
                     latency_ms=result.latency_ms,

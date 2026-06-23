@@ -26,6 +26,20 @@ class PipelineSummary:
     artifact_dir: str
 
 
+def build_qa_prompt(*, context: str, question: str, answer_type: str) -> str:
+    """Build a QA prompt that constrains the model to a short, scorable answer.
+
+    The synthetic answers are single-token classifications ("HIGH"/"LOW") or
+    booleans ("True"/"False"); without a format instruction an instruct model
+    emits long chain-of-thought that never exact-matches.
+    """
+    if answer_type == "boolean":
+        instruction = "Respond with exactly one word: True or False. No explanation."
+    else:
+        instruction = "Respond with only the final answer in a single word. No explanation."
+    return f"{instruction}\n\nContext:\n{context}\n\nQuestion: {question}\nAnswer:"
+
+
 def run_pipeline(
     config: AppConfig,
     *,
@@ -43,8 +57,10 @@ def run_pipeline(
             sample_id=f"{question.question_id}:{condition}",
             question_id=question.question_id,
             condition=condition,
-            prompt=(
-                f"Context:\n{document.document_text}\n\nQuestion: {question.question}\nAnswer:"
+            prompt=build_qa_prompt(
+                context=document.document_text,
+                question=question.question,
+                answer_type=question.answer_type,
             ),
             expected_output=question.answer,
         )
