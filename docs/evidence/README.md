@@ -10,6 +10,7 @@
 | 6.1 (gold-oracle, 강건성) | Dictionary Ablation dev pilot, N=40 | 예비 (Δmap=0, Δsymbol≈0) | [ablation-qwen7b-dev/](ablation-qwen7b-dev/README.md) |
 | 진단 v1 | compress-audit (LLM ISM 구조) | purity 0.70 / self-cont 0.71 | [compress-audit-qwen7b-dev/](compress-audit-qwen7b-dev/README.md) |
 | 진단 v2 | compress-audit (결론 강제 압축기, 71205fe) | purity 1.0 / self-cont 1.0, 단 실패 6/20(empty_relations) | [compress-audit-qwen7b-v2/](compress-audit-qwen7b-v2/README.md) |
+| 진단 v3 | compress-audit (생성 budget 512, 6087f03) | purity 1.0 / self-cont 1.0 / rel-struct 0.96 / 실패 0/20 | [compress-audit-qwen7b-v3/](compress-audit-qwen7b-v3/README.md) |
 
 ## S0 — config parity (COL-ENV-004)
 
