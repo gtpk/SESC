@@ -16,6 +16,7 @@
 | 6.3 (long smoke, 714eff1) | N=10 docs, 4 budgets × 5 methods, full~1262 tok | model_summary ≫ ISM (AR·ES); over-budget 0 | [fixed-budget-long-smoke/](fixed-budget-long-smoke/README.md) |
 | 6.3 filler sanity (2405314) | full_context vs summary, 길이 none/mid/long | gap −0.05→+0.15→+0.25 ⇒ AR>1은 filler artifact | [fixed-budget-filler-sanity/](fixed-budget-filler-sanity/README.md) |
 | 6.3 pilot (5d4500d) | N=40 docs / 80문항, 4×10 샤드 merge, budgets 128/256/512 | **summary≫ISM paired** Δ +0.25~+0.375 (McNemar p<0.01) | [fixed-budget-N40/](fixed-budget-N40/README.md) |
+| 6.4 reuse (5dffe04) | 분석적 비용-정확도, n=1..64, budget 256 | 캐시 crossover n=2; summary가 ISM를 비용·정확도 지배 | [reuse-N40/](reuse-N40/README.md) |
 
 ## S0 — config parity (COL-ENV-004)
 
