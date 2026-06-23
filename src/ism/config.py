@@ -51,6 +51,24 @@ class DatasetConfig(StrictModel):
     path: Path
     max_documents: Annotated[int, Field(gt=0)]
     questions_per_document: Annotated[int, Field(gt=0)] = 1
+    # Long-context profile: when set, synthetic documents are padded with
+    # deterministic neutral filler to this whitespace-token range (graph,
+    # questions, and answers are unchanged). Needed for meaningful fixed-budget
+    # compression (paper §5.1: 700-2000 tokens).
+    document_min_tokens: Annotated[int, Field(gt=0)] | None = None
+    document_max_tokens: Annotated[int, Field(gt=0)] | None = None
+
+    @model_validator(mode="after")
+    def validate_document_length(self) -> DatasetConfig:
+        if (self.document_min_tokens is None) != (self.document_max_tokens is None):
+            raise ValueError("document_min_tokens and document_max_tokens must be set together")
+        if (
+            self.document_min_tokens is not None
+            and self.document_max_tokens is not None
+            and self.document_min_tokens > self.document_max_tokens
+        ):
+            raise ValueError("document_min_tokens must not exceed document_max_tokens")
+        return self
 
 
 class RuntimeConfig(StrictModel):

@@ -1,0 +1,55 @@
+experiment:
+  name: fixed-budget-qwen7b-long
+  seed: 42
+  split: dev
+
+dataset:
+  name: synthetic
+  path: data/processed/synthetic-v1
+  max_documents: 120
+  questions_per_document: 2
+  document_min_tokens: 700
+  document_max_tokens: 2000
+
+runtime:
+  device: cuda
+
+model:
+  compressor: Qwen/Qwen2.5-7B-Instruct
+  reasoner: Qwen/Qwen2.5-7B-Instruct
+  backend: transformers
+  model_revision: main
+  tokenizer_revision: main
+  load_in_4bit: true
+  temperature: 0.0
+
+compression:
+  budget: 128
+  prompt_version: ism-v1
+  max_regeneration_attempts: 3
+  max_new_tokens: 256
+  generation_max_new_tokens: 512
+
+# Experiment 6.3 selects methods/budgets via CLI (--budgets / --methods); the
+# conditions field is unused here and kept minimal only to satisfy validation.
+conditions:
+  - full_context
+  - full_symbol_dict
+
+output:
+  artifact_dir: artifacts
+  save_raw_generations: true
+  checkpoint_every: 10
+
+execution_budget:
+  stage: S2
+  max_documents: 120
+  max_questions_per_document: 2
+  max_conditions: 2
+  max_budgets: 4
+  max_seeds: 1
+  max_generation_attempts: 3
+  max_new_tokens: 256
+  max_gpu_hours: 1.5
+  stop_on_error_rate: 0.02
+  stop_on_parse_failure_rate: 0.05

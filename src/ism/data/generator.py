@@ -60,8 +60,24 @@ class GeneratedDocument:
 class SyntheticGenerator:
     VERSION = "0.1.0"
 
-    def __init__(self, seed: int) -> None:
+    def __init__(
+        self,
+        seed: int,
+        *,
+        document_min_tokens: int | None = None,
+        document_max_tokens: int | None = None,
+    ) -> None:
+        if (document_min_tokens is None) != (document_max_tokens is None):
+            raise ValueError("document_min_tokens and document_max_tokens must be set together")
+        if (
+            document_min_tokens is not None
+            and document_max_tokens is not None
+            and document_min_tokens > document_max_tokens
+        ):
+            raise ValueError("document_min_tokens must not exceed document_max_tokens")
         self._seed = seed
+        self._document_min_tokens = document_min_tokens
+        self._document_max_tokens = document_max_tokens
 
     def generate(self, count: int, *, split: str = "dev") -> tuple[GeneratedDocument, ...]:
         if count < 1:
@@ -187,15 +203,50 @@ class SyntheticGenerator:
                 required_rule_ids=result.fired_rule_ids,
             ),
         )
+        document_text = render_graph(graph)
+        if self._document_min_tokens is not None and self._document_max_tokens is not None:
+            document_text = self._with_filler(document_text, index)
+
         return GeneratedDocument(
             document_id=document_id,
             split=split,
-            document_text=render_graph(graph),
+            document_text=document_text,
             graph=graph,
             questions=questions,
             generator_version=self.VERSION,
             seed=self._seed,
         )
+
+    def _with_filler(self, document_text: str, index: int) -> str:
+        """Pad the document with deterministic neutral distractor text.
+
+        Uses a dedicated per-document RNG seeded by (seed, index) so the rule
+        graph, questions, and gold answers are byte-identical to the no-filler
+        generation — only the surface text grows. Filler never asserts a
+        risk/review/ordered conclusion, so it cannot change the answer.
+        """
+        assert self._document_min_tokens is not None
+        assert self._document_max_tokens is not None
+        rng = random.Random((self._seed + 1) * 2_654_435_761 + index)
+        target = rng.randint(self._document_min_tokens, self._document_max_tokens)
+        lines = [document_text, "Context notes:"]
+        words = len(document_text.split()) + 2
+        topics = (
+            "telemetry", "logistics", "weather", "inventory", "maintenance",
+            "billing", "scheduling", "network", "calibration", "shipping",
+        )
+        while words < target:
+            sentence = (
+                f"- Note {rng.randrange(100000):05d}: {rng.choice(topics)} channel "
+                f"reading {rng.randrange(1000)} measured at {round(rng.random(), 3)} "
+                "with nominal status and no escalation."
+            )
+            cost = len(sentence.split())
+            if words + cost > self._document_max_tokens:
+                break
+            lines.append(sentence)
+            words += cost
+        return "\n".join(lines)
 
 
 def _answer(

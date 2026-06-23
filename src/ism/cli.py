@@ -164,7 +164,11 @@ def main(argv: Sequence[str] | None = None) -> None:
             )
             return
         if args.command == "generate-synthetic":
-            documents = SyntheticGenerator(config.experiment.seed).generate(
+            documents = SyntheticGenerator(
+        config.experiment.seed,
+        document_min_tokens=config.dataset.document_min_tokens,
+        document_max_tokens=config.dataset.document_max_tokens,
+    ).generate(
                 config.dataset.max_documents,
                 split=config.experiment.split.value,
             )
@@ -266,7 +270,11 @@ def main(argv: Sequence[str] | None = None) -> None:
             )
             return
         if args.command == "audit-conditions":
-            documents = SyntheticGenerator(config.experiment.seed).generate(
+            documents = SyntheticGenerator(
+        config.experiment.seed,
+        document_min_tokens=config.dataset.document_min_tokens,
+        document_max_tokens=config.dataset.document_max_tokens,
+    ).generate(
                 config.dataset.max_documents,
                 split=config.experiment.split.value,
             )
@@ -288,7 +296,11 @@ def main(argv: Sequence[str] | None = None) -> None:
             )
             return
         if args.command == "audit-budgets":
-            documents = SyntheticGenerator(config.experiment.seed).generate(
+            documents = SyntheticGenerator(
+        config.experiment.seed,
+        document_min_tokens=config.dataset.document_min_tokens,
+        document_max_tokens=config.dataset.document_max_tokens,
+    ).generate(
                 config.dataset.max_documents,
                 split=config.experiment.split.value,
             )

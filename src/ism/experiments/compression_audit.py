@@ -50,7 +50,11 @@ def run_compression_audit(
     output_dir: Path,
     generator: TextGenerator,
 ) -> CompressionAuditReport:
-    documents = SyntheticGenerator(config.experiment.seed).generate(
+    documents = SyntheticGenerator(
+        config.experiment.seed,
+        document_min_tokens=config.dataset.document_min_tokens,
+        document_max_tokens=config.dataset.document_max_tokens,
+    ).generate(
         config.dataset.max_documents,
         split=config.experiment.split.value,
     )
