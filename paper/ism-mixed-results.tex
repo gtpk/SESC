@@ -1,0 +1,476 @@
+\documentclass{article}
+
+\usepackage[preprint,nonatbib]{neurips_2026}
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage{microtype}
+\usepackage{mathtools}
+\usepackage{amssymb}
+\usepackage{graphicx}
+\usepackage[font=small,labelfont=bf]{caption}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{enumitem}
+\setlist{nosep}
+\usepackage{xcolor}
+\definecolor{linkblue}{RGB}{0,51,153}
+\usepackage[colorlinks=true,linkcolor=linkblue,citecolor=linkblue,urlcolor=linkblue]{hyperref}
+\usepackage{url}
+
+\newcommand{\dmapder}{\ensuremath{\Delta_{\mathrm{map}}^{\mathrm{derange}}}}
+\newcommand{\dmapflip}{\ensuremath{\Delta_{\mathrm{map}}^{\mathrm{flip}}}}
+\newcommand{\dsym}{\ensuremath{\Delta_{\mathrm{symbol}}}}
+
+\title{Inspectable Symbolic Compression for Long-Context Reasoning:\\
+A Mixed-Results Study Against Natural-Language Summaries}
+
+\author{%
+  Taehyuk Kwon\\
+  \texttt{gtpk11@gmail.com}\\
+}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+Prior work on reducing the cost of long-context reasoning in large language
+models (LLMs) either selects salient tokens from the source or compresses the
+context into continuous vectors. We study \emph{Inspectable Symbolic
+Compression} (ISM), which converts a long document into reusable discrete text
+symbols (\texttt{Z1}, \texttt{Z2}, \dots) with a short dictionary, and evaluate
+it honestly against a same-model natural-language summary (Model Summary) at a
+matched token budget. We report \textbf{mixed results}. (RQ1) The internal
+structure of ISM is genuinely used by the reasoner: at dev scale, inverting the
+dictionary's conclusions and removing the symbolic structure each reduce
+accuracy significantly, while permuting the arbitrary labels does not. (RQ3)
+However, at a matched budget Model Summary significantly outperforms ISM in both
+accuracy and efficiency. (RQ4) On the reuse cost--accuracy frontier, Model
+Summary also dominates ISM. Thus \emph{prompt-only ISM is not a more efficient
+compressor than a natural-language summary}. We additionally show that an early
+null result (``corrupting the dictionary does not hurt accuracy'') was an
+artifact of low compression purity and a content-preserving corruption design
+rather than evidence against the hypothesis; after correcting both, the RQ1
+signal appears. We do not claim ISM as a better compressor. Instead, our
+findings delimit the limits of prompt-only symbolic compression and argue that
+future work should move from text that an LLM re-reads to a
+\emph{programmatically executable semantic intermediate representation} handled
+by a parser/checker/executor. Label-swap (RQ2) and full registered-scale runs
+remain future work.
+\end{abstract}
+
+\noindent\textbf{Keywords:} long-context reasoning, prompt compression, discrete
+representation, intervenability, large language models.
+
+\section{Introduction}
+LLMs answer complex queries over long documents, retrieval results, and dialogue
+history, but reasoning cost and latency grow with input length. Selective
+Context and the LLMLingua family remove low-importance text~\cite{li2023sc,
+jiang2023llmlingua,jiang2024longllmlingua,pan2024llmlingua2}; Gist Tokens,
+AutoCompressors, and ICAE compress context into a few continuous memory
+representations~\cite{mu2023gist,chevalier2023autocomp,ge2024icae}. These methods
+retain strong performance at high compression ratios, but their evaluation
+largely focuses on accuracy and token count before and after compression: what
+information units a compressed representation holds, and how reasoning changes
+when those units are altered, is comparatively under-studied.
+
+We study \emph{Inspectable Symbolic Compression} (ISM), which converts a long
+document into short discrete text symbols with a dictionary, e.g.\ a conditional
+rule rendered as \texttt{Z1: marker\_a high \& marker\_b low -> risk+}. Because
+the representation is made of ordinary tokens with an explicit symbol--meaning
+mapping, one can remove the dictionary, corrupt its mappings, or swap labels in a
+controlled way and observe the effect on downstream reasoning.
+
+Our starting hypothesis was that ISM could be a \emph{competitive-efficiency yet
+manipulable} compressed representation. At dev scale this efficiency claim was
+not supported (\S\ref{sec:fixedbudget}, \S\ref{sec:reuse}): at a matched budget a
+same-model summary was both more accurate and cheaper. We therefore position this
+paper not as the successful proposal of a new compressor, but as a
+\emph{mixed-results study} that experimentally delimits where prompt-only
+symbolic compression fails and what its remaining value might be.
+
+\paragraph{Findings preview.}
+(1) ISM's internal structure is used---inverting dictionary conclusions and
+removing symbolic structure each significantly lower accuracy (RQ1, dev scale).
+(2) At a matched budget Model Summary significantly beats ISM on accuracy and
+efficiency (RQ3). (3) On the reuse cost--accuracy frontier Model Summary again
+dominates ISM (RQ4). (4) The initial $\Delta_{\mathrm{map}}\approx 0$ null was a
+measurement artifact (low compression purity $+$ content-preserving corruption);
+once corrected, the RQ1 signal emerges. Taken together, ISM's potential value is
+not ``better compression'' but a \emph{checkable, transformable, executable
+semantic IR} handled by programs outside the LLM---beyond the scope of this
+prompt-only study.
+
+\section{Related Work}
+\paragraph{Prompt and context compression.}
+Hard prompt compression selects task-important text. Selective Context removes
+low-information lexical units~\cite{li2023sc}; LLMLingua uses a small LM for
+coarse-to-fine compression~\cite{jiang2023llmlingua}; LongLLMLingua adds
+question-aware relevance~\cite{jiang2024longllmlingua}; LLMLingua-2 distills a
+task-agnostic compressor~\cite{pan2024llmlingua2}. These are the most direct
+comparators for our fixed-budget experiment. ISM instead re-expresses rules and
+relations as a symbol--dictionary structure, enabling removal and swap of
+specific meaning units.
+
+\paragraph{Continuous context compression.}
+Gist Tokens~\cite{mu2023gist}, AutoCompressors~\cite{chevalier2023autocomp}, and
+ICAE~\cite{ge2024icae} compress context into continuous memory; PCC and xRAG push
+high-ratio compression with learned or retrieval embeddings~\cite{dai2025pcc,
+cheng2024xrag}. Continuous memory has high capacity but its slots' individual
+meanings are hard to inspect or swap; ISM trades capacity for explicit tokens and
+a dictionary.
+
+\paragraph{Concept bottlenecks and intervenable representations.}
+Concept Bottleneck Models place a human-defined concept layer before the
+prediction~\cite{koh2020cbm}, extended by Concept Embedding
+Models~\cite{zarlenga2022cem}, generative CBMs~\cite{ismail2024gencbm}, and
+open-vocabulary CBMs~\cite{tan2024ovcbm}; Discover-then-Name discovers then names
+features~\cite{rao2024dtn}, and Concept Bottleneck LLMs apply this to language
+models~\cite{sun2024cbllm}. ISM connects to this line by intervening on an
+intermediate representation, but its primary goal is information preservation
+under a token budget, not concept supervision.
+
+\section{Inspectable Symbolic Compression}
+\paragraph{Problem.}
+Given a document $x$, question $q$, and answer $y$, a compressor $C$ maps $x$ to a
+representation $z=C(x;B)$ within a token budget $B$, and a reasoner $R$ produces
+$\hat{y}=R(z,q)$. ISM's representation is $z_{\mathrm{ISM}}=(S,D,G)$ with symbols
+$S=\{Z_1,\dots,Z_k\}$, a dictionary $D:Z_i\mapsto c_i$ mapping each symbol to a
+short textual definition (condition, event, exception, or relation), and relations
+$G$ encoding application order, implication, exception, or conclusion.
+
+\paragraph{Format and procedure.}
+ISM uses a \texttt{[DICTIONARY]} block of \texttt{LABEL := definition} lines and a
+\texttt{[RELATIONS]} block. The compressor (a fixed instruction-tuned LLM) is
+prompted to emit only symbols, a short dictionary, and relations; to preserve
+conditions, conclusions, exceptions, priorities, thresholds, and ordering; not to
+answer any specific question; and to keep the whole output within $B$
+whitespace tokens, regenerating rather than truncating on overflow. Each document
+is compressed once and reused for all of its questions.
+
+\paragraph{Intervention operators.}
+On a normal representation $z=(S,D,G)$ we define: \emph{dictionary removal}
+$(S,\varnothing,G)$; \emph{derangement} $(S,\pi(D),G)$, a label permutation of the
+definitions; \emph{conclusion flip}, a counterfactual that inverts outcome tokens
+(HIGH$\leftrightarrow$LOW, True$\leftrightarrow$False) while keeping conditions and
+relations; \emph{blanking}, replacing definitions with a placeholder; \emph{random
+symbol control} matching length but removing meaning; and \emph{label swap} to an
+unseen label set. The flip is the content-altering corruption introduced after the
+diagnostic in \S\ref{sec:diagnosis}.
+
+\section{Research Questions}
+\textbf{RQ1.} Are the symbols and dictionary actually used in reasoning?
+\textbf{RQ2.} Can ISM use new label--meaning bindings beyond memorizing specific
+label strings? \textbf{RQ3.} At a matched token budget, does ISM preserve more
+task-relevant information than natural-language summaries and prior prompt
+compression? \textbf{RQ4.} How do cost and accuracy behave when one compressed
+representation is reused across many questions?
+
+\section{Experimental Setup}
+\label{sec:setup}
+\paragraph{Data.}
+Synthetic Rule-QA generates documents from a known gold rule graph (conjunction,
+disjunction, exception, precedence, threshold, temporal rules) with multiple
+questions whose gold answers are computed by a deterministic rule executor; the
+gold graph supports causal error analysis. For meaningful fixed-budget
+compression we use a \emph{long-context profile}: each document is padded with
+deterministic, neutral filler to 700--2000 whitespace tokens \emph{without}
+changing the rule graph, questions, or answers, so budgets of 64--512 are real
+compression. QASPER provides external validity on real papers; its answers are
+scored with token-level answer-F1 (\S\ref{sec:setup}), and it is excluded from
+reuse analysis.
+
+\paragraph{Model and scoring.}
+Compressor and reasoner are the same 4-bit Qwen2.5-7B-Instruct with greedy
+decoding (\(T=0\)), seed 42, on a single T4 GPU. Synthetic answers are short
+labels scored by normalized exact match; QASPER uses token-level answer-F1 (SQuAD
+normalization, max over references, with unanswerable handling). We report
+Accuracy, Accuracy Retention $\mathrm{AR}=Acc_m/Acc_{\mathrm{full}}$, Compression
+Ratio $\mathrm{CR}=\mathrm{tok}_m/\mathrm{tok}_{\mathrm{full}}$, and Efficiency
+Score $\mathrm{ES}=\mathrm{AR}/\mathrm{CR}$. Differences are tested on identical
+document--question pairs with McNemar's exact test; 95\% CIs use 10{,}000-sample
+paired bootstrap.
+
+\paragraph{Scope of this study.}
+All experiments are prompt-only at \emph{dev} scale (development-set pilots, not
+the full registered scale of 5{,}000 dev documents). Tables labeled ``dev pilot''
+use small $N$ and are not cited as registered-scale numbers. The LoRA-based
+label-swap experiment (RQ2) and QASPER end-to-end runs are future work.
+
+\section{Experiments and the Diagnosis of an Early Null}
+\label{sec:diagnosis}
+We run three experiments: \textbf{6.1 Dictionary Ablation} (RQ1),
+\textbf{6.3 Fixed-Budget Comparison} (RQ3), and \textbf{6.4 Reuse} (RQ4).
+
+An initial ablation produced $\Delta_{\mathrm{map}}\approx 0$: corrupting the
+dictionary did not reduce accuracy. A diagnostic (\texttt{compress-audit})
+attributed this to two measurement defects rather than to the hypothesis.
+\textbf{(i) Low purity.} The first LLM compressor frequently kept rule
+\emph{conditions} but dropped their \emph{conclusions} (rule coverage $0.70$,
+self-containment $0.71$); the representation often lacked the answer mapping, so
+the reasoner regressed toward the majority class. \textbf{(ii) Content-preserving
+corruption.} The standard derangement permutes which label holds which definition
+but preserves the \emph{multiset} of definitions; with self-contained rules and
+arbitrary labels, the derivable answer is unchanged. We corrected (i) by requiring
+conclusion-bearing definitions (purity and self-containment $\to 1.0$; raising the
+compressor's decoding budget to clear a truncation-induced
+\texttt{empty\_relations} failure), and (ii) by adding the \emph{conclusion-flip}
+content-altering corruption. Only after both corrections does the RQ1 signal
+appear.
+
+\section{Results (dev-scale)}
+
+\subsection{Dictionary Ablation (RQ1)}
+Table~\ref{tab:ablation} reports the corrected ablation with an LLM compressor and
+content-altering corruption (\(N=240\) questions). Permuting labels has no effect
+(\dmapder{} not significant), but inverting conclusions and removing symbolic
+structure both lower accuracy significantly.
+
+\begin{table}[t]
+\centering
+\caption{Dictionary Ablation, dev scale-up (\(N{=}40\) docs / 240 questions),
+LLM compressor + content-altering corruption. Contrasts: \dmapder{} (label
+binding) $=+0.071$, CI $[-0.021,0.163]$, $p{=}0.159$; \dmapflip{} (semantic
+content, primary) $=+0.079$, CI $[0.013,0.146]$, $p{=}0.032$; \dsym{} $=+0.108$,
+CI $[0.050,0.167]$, $p{=}5\!\times\!10^{-4}$.}
+\label{tab:ablation}
+\begin{tabular}{lccc}
+\toprule
+Condition & Accuracy & AR & CR \\
+\midrule
+Full Context        & 0.750 & 1.000 & 1.000 \\
+Full Symbol + Dict  & 0.446 & 0.594 & 0.745 \\
+Corrupted (derange) & 0.375 & 0.500 & 0.745 \\
+Flipped (content)   & 0.367 & 0.489 & 0.745 \\
+Blank Dict          & 0.250 & 0.333 & 0.215 \\
+Symbol Only         & 0.413 & 0.550 & 0.079 \\
+Random Symbol       & 0.304 & 0.406 & 0.738 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The dictionary's \emph{semantic content} and the \emph{symbolic structure} are
+used; the arbitrary label binding is not. This is consistent across an LLM-produced
+ISM and a gold-graph-derived ISM. The amended pre-registered criterion
+``Symbol Only $>$ Random \emph{and} Full+Dict $>$ Flipped'' is met at dev scale.
+
+\subsection{Fixed-Budget Comparison (RQ3)}
+\label{sec:fixedbudget}
+Table~\ref{tab:fixedbudget} compares methods at budgets $\{128,256,512\}$ on
+long-context documents (\(N=40\) docs / 80 questions; budget 64 is excluded as an
+ISM representation floor). Because AR is relative to Full Context, which is
+degraded by filler (\S\ref{sec:disc}), the \emph{primary} comparison is the
+same-question paired contrast Model Summary vs.\ ISM, which is independent of that
+artifact.
+
+\begin{table}[t]
+\centering
+\caption{Fixed-Budget dev pilot (\(N{=}80\) questions). Cell entries are AR\,/\,ES.
+Full Context accuracy $0.700$. LLMLingua-2 omitted (future baseline). ISM@64 not
+produced (representation floor).}
+\label{tab:fixedbudget}
+\begin{tabular}{lccc}
+\toprule
+Method & 128 & 256 & 512 \\
+\midrule
+Model Summary       & 1.036 / 51.3 & 1.125 / 17.3 & 1.196 / 13.3 \\
+ISM                 & 0.679 / 9.4  & 0.679 / 9.3  & 0.661 / 8.9 \\
+Keyword Extract     & 0.714 / 7.4  & 0.732 / 4.2  & 0.750 / 3.6 \\
+Oracle Gold Summary & 0.732 / 11.0 & 0.732 / 11.0 & 0.732 / 11.0 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{table}[t]
+\centering
+\caption{Primary paired contrast Model Summary $-$ ISM on identical questions
+(\(N{=}80\)). Discordant = (summary correct, ISM wrong) / (ISM correct, summary
+wrong).}
+\label{tab:paired}
+\begin{tabular}{lcccc}
+\toprule
+Budget & $\Delta$ & 95\% CI & McNemar $p$ & discordant \\
+\midrule
+128 & $+0.250$  & $[0.100,0.400]$ & $0.0029$            & 31 / 11 \\
+256 & $+0.3125$ & $[0.175,0.450]$ & $1.1\times10^{-4}$  & 33 / 8 \\
+512 & $+0.375$  & $[0.250,0.500]$ & $2.3\times10^{-7}$  & 33 / 3 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Model Summary significantly outperforms ISM at every budget (McNemar $p<0.01$, and
+$p<10^{-6}$ at 512), and the gap grows with budget. Since both methods strip
+filler, this is independent of the filler artifact. The pre-registered criterion
+that ISM beat Model Summary in AR or ES is therefore \emph{not met}.
+
+\subsection{Reuse cost--accuracy (RQ4)}
+\label{sec:reuse}
+Reusing one compression across $n$ questions has analytic token cost (per
+document): $T_{\mathrm{full}}(n)=n(|x|+|q|)$ and
+$T_{\mathrm{cache}}(n)=|x|+|z|+n(|z|+|q|)$ (end-to-end), or $n(|z|+|q|)$
+(serving-only). With $|x|{=}1348$, $|q|{=}5.5$ and per-method $|z|$, accuracy from
+the budget-256 fixed-budget run, Table~\ref{tab:reuse} gives end-to-end token cost.
+
+\begin{table}[t]
+\centering
+\caption{Reuse end-to-end token cost vs.\ number of questions $n$ (budget 256).
+All cached methods beat Full Context from $n{=}2$; among caches, Model Summary
+dominates ISM on both cost and accuracy.}
+\label{tab:reuse}
+\begin{tabular}{lcccccc}
+\toprule
+Method & $n{=}1$ & $n{=}8$ & $n{=}32$ & $n{=}64$ & Accuracy \\
+\midrule
+Full Context  & 1354 & 10828 & 43312 & 86624 & 0.700 \\
+Model Summary & 1526 & 2168  & 4369  & 7305  & 0.787 \\
+ISM           & 1548 & 2265  & 4725  & 8005  & 0.475 \\
+Oracle Gold   & 1530 & 2184  & 4428  & 7420  & 0.512 \\
+Keyword       & 1820 & 3492  & 9225  & 16868 & 0.512 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Reuse is a clear practical benefit of compression---every cached method beats Full
+Context from two questions and is $\sim$12$\times$ cheaper at $n{=}64$---but it is a
+\emph{generic} property of any cacheable representation, not ISM-specific. On the
+cost--accuracy frontier, Model Summary dominates ISM (fewer tokens, higher
+accuracy).
+
+\section{Discussion}
+\label{sec:disc}
+\paragraph{Efficiency vs.\ inspectability.}
+RQ3 and RQ4 jointly close the ``ISM is a better compressor / cache'' route: a
+same-model summary is shorter and more accurate. Both ISM and summary are text
+produced and re-read by an LLM, so they fall in the same category, and within it
+the natural-language summary is the stronger baseline.
+
+\paragraph{The filler artifact.}
+In the fixed-budget run, Model Summary's AR sometimes exceeded $1$ (beating Full
+Context). A sanity check varying filler length (same documents) showed the
+summary--minus--full gap grows monotonically with filler ($-0.05 \to +0.15 \to
++0.25$): with no filler, the summary does not beat full context. So AR$>$1 is
+substantially a filler artifact (filler degrades full-context reasoning), which is
+why our primary RQ3 contrast is the filler-independent paired summary-vs-ISM
+comparison.
+
+\paragraph{Manual edits are not the differentiator.}
+``Summaries cannot be edited'' is false---a human can edit a summary sentence. The
+honest distinction is that ISM, as a schema, admits \emph{automatic, local,
+verifiable} edits and, in principle, symbolic execution without the LLM; a free-text
+summary does not. Demonstrating this is the subject of future work
+(Appendix~\ref{app:future}), not of the present prompt-only setup.
+
+\section{Limitations}
+Synthetic Rule-QA is more closed than real text; QASPER end-to-end evaluation is
+future work. Current RQ1 evidence is a dev scale-up ($N{=}240$), not the registered
+5{,}000-document dev set; full-scale confirmation is deferred pending compression
+throughput improvements (compression is sequential per document and dominates
+cost). ES is a ratio that inflates at very small CR, so we always report AR and CR
+alongside it. System cost depends on more than token count (KV-cache, hardware,
+batch size, latency); the reuse model is analytic.
+
+\section{Conclusion}
+We studied ISM and compared it honestly to a same-model summary. The results are
+mixed. \emph{What worked:} after diagnosis and correction, ISM's symbolic structure
+and dictionary content are functionally used (RQ1, dev scale)---flipping
+conclusions and removing structure both significantly lower accuracy, while label
+permutation does not. \emph{What did not:} the efficiency hypothesis is not
+supported---at a matched budget and under reuse, a natural-language summary is both
+more accurate and cheaper (RQ3, RQ4), so the pre-registered criterion that ISM beat
+Model Summary fails. Prompt-only symbolic compression is thus not a better
+compressor; its remaining promise is to be treated as a \emph{programmatically
+executable semantic IR} handled by a parser/checker/executor outside the LLM
+(Appendix~\ref{app:future}), which we leave to future work along with RQ2 and
+full-scale runs.
+
+\section*{Reproducibility}
+Dev-scale results, with raw artifacts or SHA-256 hashes, environment
+(commit/GPU/package versions), and reproduction commands, are organized per run
+under \texttt{docs/evidence/} in the code repository: 6.1 ablation
+(\texttt{ablation-qwen7b-N120}), 6.3 fixed-budget (\texttt{fixed-budget-N40}), 6.4
+reuse (\texttt{reuse-N40}), and the filler sanity
+(\texttt{fixed-budget-filler-sanity}). Diagnosis and decisions are recorded under
+\texttt{docs/reviews/} and \texttt{docs/decisions/}. Large prediction files are kept
+in the GPU environment with recorded hashes and are regenerable from the stated
+commit and config.
+
+\appendix
+\section{Pre-registered Criteria and Status}
+\label{app:criteria}
+The minimum conditions registered before seeing dev results were: (1) ISM shows
+significantly higher AR or ES than Model Summary; (2) Symbol Only $>$ Random
+\emph{and} Full+Dict $>$ Corrupted; (3) Unseen-Swap+Dictionary retains most of
+Original+Dictionary performance.
+
+\paragraph{Amendment (post-diagnosis).}
+The original derangement corruption preserves the multiset of definitions and tests
+surface label binding, not semantic dependence. The amended primary
+dictionary-dependence contrast is the semantic conclusion flip; derangement is
+reported as a secondary label-binding diagnostic. We report three contrasts:
+\dmapder{} (label binding), \dmapflip{} (semantic content, primary), and \dsym{}
+(symbolic structure).
+
+\paragraph{Status (dev scale).}
+\begin{itemize}
+\item Criterion \#1 (ISM $>$ Model Summary): \textbf{FAILED} --- paired
+Summary$-$ISM $=+0.25$ to $+0.375$, McNemar $p<0.01$ at all budgets
+(Table~\ref{tab:paired}); reuse frontier also dominated by summary.
+\item Criterion \#2 (Symbol Only $>$ Random \emph{and} Full+Dict $>$ Flipped):
+\textbf{met} at dev scale (\dsym{} $p{=}5\!\times\!10^{-4}$, \dmapflip{} $p{=}0.032$).
+\item Criterion \#3 (label-swap transfer): \textbf{untested} --- RQ2 future work.
+\end{itemize}
+Following the registration rule, because \#1 failed we do not claim ISM's
+efficiency advantage. \#2 supports that ISM's internal structure is used, which is a
+separate statement from efficiency.
+
+\section{Future Work: Executable Semantic IR}
+\label{app:future}
+Our negative/mixed results point to the main next direction. Today ISM is text an
+LLM generates and re-reads, so it shares a category with summaries, in which
+summaries are shorter and more accurate. For ISM to differ in kind, a program
+outside the LLM must handle it.
+
+\begin{center}
+\begin{tabular}{lll}
+\toprule
+ & Model Summary & ISM as semantic IR \\
+\midrule
+Generation & LLM            & LLM compiles to IR \\
+Format     & free text      & schema (parsable) \\
+Validation & hard           & validator checks rules \\
+Edit       & manual rewrite & rule-id local, verifiable \\
+Execution  & needs LLM      & symbolic executor, no LLM \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+Concretely: (1) \emph{compile-and-execute}---parse the LLM-generated ISM to an AST
+and answer with a symbolic executor under the gold rule-graph semantics, without LLM
+QA; summaries lack an executor, so the categories finally separate. (2)
+\emph{programmatic editability}---repair a corrupted/flipped ISM by a deterministic
+rule-id edit and measure \texttt{repair\_success}, \texttt{targeted\_effect\_rate},
+\texttt{collateral\_damage\_rate}, \texttt{parse\_success}, \texttt{tokens\_changed},
+and \texttt{needs\_llm\_rewrite}, contrasting edit \emph{locality} and
+\emph{verifiability} with a summary's manual rewrite. (3) RQ2 label swap (small
+LoRA), full registered-scale runs, and QASPER answer-F1.
+
+\begin{thebibliography}{99}
+\bibitem{koh2020cbm} P.~W. Koh et al. Concept Bottleneck Models. \emph{ICML}, 2020.
+\bibitem{zarlenga2022cem} M.~Espinosa Zarlenga et al. Concept Embedding Models. \emph{NeurIPS}, 2022.
+\bibitem{ismail2024gencbm} A.~A. Ismail et al. Concept Bottleneck Generative Models. \emph{ICLR}, 2024.
+\bibitem{tan2024ovcbm} A.~Tan et al. Concept Bottleneck Model with Open Vocabulary Concepts. \emph{ECCV}, 2024.
+\bibitem{rao2024dtn} S.~Rao et al. Discover-then-Name: Task-Agnostic Concept Bottlenecks. \emph{ECCV}, 2024.
+\bibitem{sun2024cbllm} C.-E. Sun et al. Concept Bottleneck Large Language Models. 2024.
+\bibitem{jiang2023llmlingua} H.~Jiang et al. LLMLingua: Compressing Prompts for Accelerated Inference. \emph{EMNLP}, 2023.
+\bibitem{jiang2024longllmlingua} H.~Jiang et al. LongLLMLingua. \emph{ACL}, 2024.
+\bibitem{pan2024llmlingua2} Z.~Pan et al. LLMLingua-2. \emph{Findings of ACL}, 2024.
+\bibitem{li2023sc} Y.~Li et al. Compressing Context to Enhance Inference Efficiency. \emph{EMNLP}, 2023.
+\bibitem{mu2023gist} J.~Mu, X.~L. Li, N.~Goodman. Learning to Compress Prompts with Gist Tokens. \emph{NeurIPS}, 2023.
+\bibitem{chevalier2023autocomp} A.~Chevalier et al. Adapting Language Models to Compress Long Contexts. \emph{EMNLP}, 2023.
+\bibitem{ge2024icae} T.~Ge et al. In-context Autoencoder for Context Compression. \emph{ICLR}, 2024.
+\bibitem{dai2025pcc} Y.~Dai et al. Pretraining Context Compressor with Embedding-Based Memory. \emph{ACL}, 2025.
+\bibitem{cheng2024xrag} X.~Cheng et al. xRAG: Extreme Context Compression for RAG with One Token. \emph{NeurIPS}, 2024.
+\end{thebibliography}
+
+\end{document}

@@ -13,3 +13,6 @@ artifacts/
 data/raw/
 data/processed/
 results/reports/
+
+# LaTeX build logs
+paper/*.log
