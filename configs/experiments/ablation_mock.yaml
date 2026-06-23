@@ -1,0 +1,53 @@
+experiment:
+  name: ablation-mock
+  seed: 42
+  split: dev
+
+dataset:
+  name: synthetic
+  path: data/processed/synthetic-v1
+  max_documents: 4
+  questions_per_document: 2
+
+runtime:
+  device: cpu
+
+model:
+  compressor: mock
+  reasoner: mock
+  backend: mock
+  model_revision: local
+  tokenizer_revision: local
+  load_in_4bit: false
+  temperature: 0.0
+
+compression:
+  budget: 128
+  prompt_version: ism-v1
+  max_regeneration_attempts: 3
+  max_new_tokens: 256
+
+conditions:
+  - full_context
+  - full_symbol_dict
+  - symbol_only
+  - corrupted_dict
+  - random_symbol
+
+output:
+  artifact_dir: artifacts
+  save_raw_generations: true
+  checkpoint_every: 10
+
+execution_budget:
+  stage: L2
+  max_documents: 4
+  max_questions_per_document: 2
+  max_conditions: 5
+  max_budgets: 1
+  max_seeds: 1
+  max_generation_attempts: 3
+  max_new_tokens: 256
+  max_gpu_hours: 0
+  stop_on_error_rate: 0.02
+  stop_on_parse_failure_rate: 0.05

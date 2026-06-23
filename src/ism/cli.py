@@ -4,6 +4,7 @@ import argparse
 import json
 import sys
 from collections.abc import Sequence
+from dataclasses import asdict
 from pathlib import Path
 
 from pydantic import ValidationError
@@ -12,6 +13,7 @@ from ism.config import load_config
 from ism.data.generator import SyntheticGenerator
 from ism.data.io import write_documents
 from ism.evaluation.reporting import report_from_artifacts
+from ism.experiments.ablation import run_ablation_experiment
 from ism.experiments.audit import write_budget_audit, write_condition_audit
 from ism.experiments.budgets import (
     DeterministicRepresentationProducer,
@@ -65,6 +67,15 @@ def build_parser() -> argparse.ArgumentParser:
     run.add_argument("--output", required=True, type=Path)
     run.add_argument("--batch-size", type=int, default=1)
     run.add_argument("--resume", action="store_true")
+
+    run_ablation = subparsers.add_parser(
+        "run-ablation",
+        help="run experiment 6.1 (Dictionary Ablation) across the configured conditions",
+    )
+    run_ablation.add_argument("--config", required=True, type=Path)
+    run_ablation.add_argument("--output", required=True, type=Path)
+    run_ablation.add_argument("--batch-size", type=int, default=1)
+    run_ablation.add_argument("--resume", action="store_true")
 
     audit = subparsers.add_parser(
         "audit-conditions",
@@ -166,6 +177,18 @@ def main(argv: Sequence[str] | None = None) -> None:
                     sort_keys=True,
                 )
                 + "\n"
+            )
+            return
+        if args.command == "run-ablation":
+            ablation = run_ablation_experiment(
+                config,
+                output_dir=args.output,
+                generator=build_text_generator(config),
+                batch_size=args.batch_size,
+                resume=args.resume,
+            )
+            sys.stdout.write(
+                json.dumps(asdict(ablation), ensure_ascii=False, indent=2, sort_keys=True) + "\n"
             )
             return
         if args.command == "audit-conditions":

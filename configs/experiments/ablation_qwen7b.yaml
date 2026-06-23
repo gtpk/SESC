@@ -1,0 +1,56 @@
+experiment:
+  name: ablation-qwen7b-dev
+  seed: 42
+  split: dev
+
+dataset:
+  name: synthetic
+  path: data/processed/synthetic-v1
+  max_documents: 20
+  questions_per_document: 2
+
+runtime:
+  device: cuda
+
+model:
+  compressor: Qwen/Qwen2.5-7B-Instruct
+  reasoner: Qwen/Qwen2.5-7B-Instruct
+  backend: transformers
+  model_revision: main
+  tokenizer_revision: main
+  load_in_4bit: true
+  temperature: 0.0
+
+compression:
+  budget: 128
+  prompt_version: ism-v1
+  max_regeneration_attempts: 3
+  max_new_tokens: 256
+
+# Experiment 6.1 — Dictionary Ablation (RQ1). ISM conditions only; the text
+# comparison methods (model_summary/keyword_extract/llmlingua_2) are still
+# stubbed and excluded until implemented.
+conditions:
+  - full_context
+  - full_symbol_dict
+  - symbol_only
+  - corrupted_dict
+  - random_symbol
+
+output:
+  artifact_dir: artifacts
+  save_raw_generations: true
+  checkpoint_every: 10
+
+execution_budget:
+  stage: S2
+  max_documents: 20
+  max_questions_per_document: 2
+  max_conditions: 5
+  max_budgets: 1
+  max_seeds: 1
+  max_generation_attempts: 3
+  max_new_tokens: 256
+  max_gpu_hours: 1.0
+  stop_on_error_rate: 0.02
+  stop_on_parse_failure_rate: 0.05
