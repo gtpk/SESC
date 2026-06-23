@@ -25,6 +25,8 @@
   - [ADR 0002 — QASPER 채점 규약](decisions/0002-qasper-scoring.md)
 - `docs/reviews/`: 검토 메모
   - [논문 실험 갭 분석](reviews/paper-experiment-gaps.md)
+  - [LLM ISM 진단 (Δmap≈0 원인)](reviews/llm-ism-diagnostic.md)
+  - [연구 마무리 — mixed-results](reviews/study-conclusion.md)
 - `docs/evidence/`: 재현 가능한 실행 증거 (산출물·체크섬·환경)
   - [증거 인덱스 (S0/S1)](evidence/README.md)
 
