@@ -19,6 +19,7 @@ from ism.experiments.budgets import (
     DeterministicRepresentationProducer,
     build_budget_matrix,
 )
+from ism.experiments.compression_audit import run_compression_audit
 from ism.experiments.conditions import build_condition_matrix
 from ism.inference.factory import build_text_generator
 from ism.inference.mock import MockTextGenerator
@@ -76,6 +77,13 @@ def build_parser() -> argparse.ArgumentParser:
     run_ablation.add_argument("--output", required=True, type=Path)
     run_ablation.add_argument("--batch-size", type=int, default=1)
     run_ablation.add_argument("--resume", action="store_true")
+
+    compress_audit = subparsers.add_parser(
+        "compress-audit",
+        help="compress documents only and report ISM structure diagnostics",
+    )
+    compress_audit.add_argument("--config", required=True, type=Path)
+    compress_audit.add_argument("--output", required=True, type=Path)
 
     audit = subparsers.add_parser(
         "audit-conditions",
@@ -189,6 +197,16 @@ def main(argv: Sequence[str] | None = None) -> None:
             )
             sys.stdout.write(
                 json.dumps(asdict(ablation), ensure_ascii=False, indent=2, sort_keys=True) + "\n"
+            )
+            return
+        if args.command == "compress-audit":
+            audit = run_compression_audit(
+                config,
+                output_dir=args.output,
+                generator=build_text_generator(config),
+            )
+            sys.stdout.write(
+                json.dumps(asdict(audit), ensure_ascii=False, indent=2, sort_keys=True) + "\n"
             )
             return
         if args.command == "audit-conditions":
