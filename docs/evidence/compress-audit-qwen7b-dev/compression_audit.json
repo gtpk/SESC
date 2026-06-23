@@ -1,0 +1,16 @@
+{
+  "compressed": 18,
+  "corruption_preserves_content": 1.0,
+  "documents": 20,
+  "failures": 2,
+  "majority_baseline": {
+    "boolean": 0.55,
+    "classification": 0.55
+  },
+  "mean_attempts": 1.0555555555555556,
+  "mean_corruption_overlap": 0.2975912110107684,
+  "mean_relations_structure": 0.7901709401709403,
+  "mean_rule_coverage": 0.7037037037037037,
+  "mean_self_containment": 0.7117003367003367,
+  "run_id": "ablation-qwen7b-dev"
+}
