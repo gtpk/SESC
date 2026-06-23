@@ -6,7 +6,7 @@ experiment:
 dataset:
   name: synthetic
   path: data/processed/synthetic-v1
-  max_documents: 20
+  max_documents: 120
   questions_per_document: 2
 
 runtime:
@@ -50,7 +50,7 @@ output:
 
 execution_budget:
   stage: S2
-  max_documents: 20
+  max_documents: 120
   max_questions_per_document: 2
   max_conditions: 7
   max_budgets: 1

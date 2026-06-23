@@ -13,7 +13,7 @@ from ism.config import load_config
 from ism.data.generator import SyntheticGenerator
 from ism.data.io import write_documents
 from ism.evaluation.reporting import report_from_artifacts
-from ism.experiments.ablation import run_ablation_experiment
+from ism.experiments.ablation import merge_ablation, run_ablation_experiment
 from ism.experiments.audit import write_budget_audit, write_condition_audit
 from ism.experiments.budgets import (
     DeterministicRepresentationProducer,
@@ -77,6 +77,16 @@ def build_parser() -> argparse.ArgumentParser:
     run_ablation.add_argument("--output", required=True, type=Path)
     run_ablation.add_argument("--batch-size", type=int, default=1)
     run_ablation.add_argument("--resume", action="store_true")
+    run_ablation.add_argument("--doc-offset", type=int, default=0)
+    run_ablation.add_argument("--doc-count", type=int, default=None)
+
+    merge_ablation_parser = subparsers.add_parser(
+        "merge-ablation",
+        help="merge ablation shard outputs into one paired evaluation",
+    )
+    merge_ablation_parser.add_argument("--config", required=True, type=Path)
+    merge_ablation_parser.add_argument("--output", required=True, type=Path)
+    merge_ablation_parser.add_argument("--shards", required=True, nargs="+", type=Path)
 
     compress_audit = subparsers.add_parser(
         "compress-audit",
@@ -194,9 +204,22 @@ def main(argv: Sequence[str] | None = None) -> None:
                 generator=build_text_generator(config),
                 batch_size=args.batch_size,
                 resume=args.resume,
+                doc_offset=args.doc_offset,
+                doc_count=args.doc_count,
             )
             sys.stdout.write(
                 json.dumps(asdict(ablation), ensure_ascii=False, indent=2, sort_keys=True) + "\n"
+            )
+            return
+        if args.command == "merge-ablation":
+            merged = merge_ablation(
+                tuple(args.shards),
+                output_dir=args.output,
+                run_id=config.experiment.name,
+                seed=config.experiment.seed,
+            )
+            sys.stdout.write(
+                json.dumps(asdict(merged), ensure_ascii=False, indent=2, sort_keys=True) + "\n"
             )
             return
         if args.command == "compress-audit":

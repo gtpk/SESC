@@ -4,7 +4,7 @@ import json
 from pathlib import Path
 
 from ism.config import load_config
-from ism.experiments.ablation import run_ablation_experiment
+from ism.experiments.ablation import merge_ablation, run_ablation_experiment
 from ism.inference.contracts import GenerationRequest, GenerationResult
 from ism.inference.mock import MockTextGenerator
 
@@ -25,10 +25,17 @@ class _FakeLlmGenerator:
     """Emits a parseable ISM for compression requests and echoes the expected
     answer for QA requests, so the LLM-compressor path can be tested offline."""
 
+    def __init__(self) -> None:
+        self.compress_calls = 0
+
     def generate(self, requests: tuple[GenerationRequest, ...]) -> tuple[GenerationResult, ...]:
         results: list[GenerationResult] = []
         for request in requests:
-            text = _VALID_ISM if ":compress:" in request.request_id else request.expected_output
+            if ":compress:" in request.request_id:
+                self.compress_calls += 1
+                text: str | None = _VALID_ISM
+            else:
+                text = request.expected_output
             results.append(
                 GenerationResult(
                     request_id=request.request_id,
@@ -133,3 +140,59 @@ def test_llm_backend_uses_llm_compressor(tmp_path: Path) -> None:
         "delta_map_flip",
         "delta_symbol",
     }
+
+
+def test_shard_window_selects_disjoint_documents(tmp_path: Path) -> None:
+    config = load_config(MOCK_CONFIG)  # 4 docs, 5 conditions
+    summary = run_ablation_experiment(
+        config,
+        output_dir=tmp_path,
+        generator=MockTextGenerator(),
+        doc_offset=2,
+        doc_count=2,
+    )
+    assert summary.documents == 2
+    assert summary.predictions == 2 * 2 * 5  # 2 docs x 2 questions x 5 conditions
+
+
+def test_compression_cache_resume_skips_recompression(tmp_path: Path) -> None:
+    config = load_config(LLM_CONFIG)
+    generator = _FakeLlmGenerator()
+
+    first = run_ablation_experiment(
+        config, output_dir=tmp_path, generator=generator, doc_count=2
+    )
+    assert first.compression.compressed == 2
+    assert generator.compress_calls == 2
+    assert (tmp_path / "compressions_cache.jsonl").is_file()
+
+    # Resuming reuses the cached ISMs: no further compression generations.
+    generator.compress_calls = 0
+    second = run_ablation_experiment(
+        config, output_dir=tmp_path, generator=generator, doc_count=2, resume=True
+    )
+    assert generator.compress_calls == 0
+    assert second.compression.compressed == 2
+
+
+def test_merge_ablation_combines_disjoint_shards(tmp_path: Path) -> None:
+    config = load_config(MOCK_CONFIG)  # 4 docs
+    shard_a = tmp_path / "a"
+    shard_b = tmp_path / "b"
+    run_ablation_experiment(
+        config, output_dir=shard_a, generator=MockTextGenerator(), doc_offset=0, doc_count=2
+    )
+    run_ablation_experiment(
+        config, output_dir=shard_b, generator=MockTextGenerator(), doc_offset=2, doc_count=2
+    )
+
+    merged = merge_ablation(
+        (shard_a, shard_b),
+        output_dir=tmp_path / "merged",
+        run_id="merged",
+        seed=42,
+    )
+    assert merged.documents == 4
+    assert merged.predictions == 4 * 2 * 5
+    assert {c.name for c in merged.contrasts} == {"delta_map_derange", "delta_symbol"}
+    assert (tmp_path / "merged" / "ablation_summary.json").is_file()
