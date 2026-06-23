@@ -111,9 +111,7 @@ class InferenceRunner:
             result = final[request_id]
             sample = samples_by_id[request_id]
             normalized = result.text.strip() if result.text is not None else None
-            correct = normalized is not None and answers_match(
-                normalized, sample.expected_output
-            )
+            correct = normalized is not None and answers_match(normalized, sample.expected_output)
             records.append(
                 PredictionRecord(
                     sample_id=sample.sample_id,

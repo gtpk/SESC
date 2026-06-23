@@ -13,9 +13,7 @@ class _FixedGenerator:
     def __init__(self, text: str) -> None:
         self._text = text
 
-    def generate(
-        self, requests: tuple[GenerationRequest, ...]
-    ) -> tuple[GenerationResult, ...]:
+    def generate(self, requests: tuple[GenerationRequest, ...]) -> tuple[GenerationResult, ...]:
         return tuple(
             GenerationResult(
                 request_id=request.request_id,

@@ -12,16 +12,20 @@ ROOT = Path(__file__).resolve().parents[1]
 MOCK_CONFIG = ROOT / "configs/experiments/ablation_mock.yaml"
 LLM_CONFIG = ROOT / "configs/experiments/ablation_qwen7b.yaml"
 
-_VALID_ISM = "[DICTIONARY]\nZ1 := condition a\nZ2 := condition b\n\n[RELATIONS]\nZ1 Z2\n"
+_VALID_ISM = (
+    "[DICTIONARY]\n"
+    "Z1 := IF condition a THEN risk = HIGH\n"
+    "Z2 := IF condition b THEN review = true\n\n"
+    "[RELATIONS]\n"
+    "Z1 Z2\n"
+)
 
 
 class _FakeLlmGenerator:
     """Emits a parseable ISM for compression requests and echoes the expected
     answer for QA requests, so the LLM-compressor path can be tested offline."""
 
-    def generate(
-        self, requests: tuple[GenerationRequest, ...]
-    ) -> tuple[GenerationResult, ...]:
+    def generate(self, requests: tuple[GenerationRequest, ...]) -> tuple[GenerationResult, ...]:
         results: list[GenerationResult] = []
         for request in requests:
             text = _VALID_ISM if ":compress:" in request.request_id else request.expected_output
@@ -59,9 +63,7 @@ def test_ablation_runs_all_conditions_and_differentiates_inputs(tmp_path: Path) 
 
 def test_ablation_conditions_differ_in_tokens(tmp_path: Path) -> None:
     config = load_config(MOCK_CONFIG)
-    summary = run_ablation_experiment(
-        config, output_dir=tmp_path, generator=MockTextGenerator()
-    )
+    summary = run_ablation_experiment(config, output_dir=tmp_path, generator=MockTextGenerator())
     by_condition = {metric.condition: metric for metric in summary.conditions}
 
     # full_context is the uncompressed baseline (CR == 1); the ISM/symbol
@@ -79,9 +81,7 @@ def test_ablation_conditions_differ_in_tokens(tmp_path: Path) -> None:
 
 def test_ablation_reports_preregistered_contrasts(tmp_path: Path) -> None:
     config = load_config(MOCK_CONFIG)
-    summary = run_ablation_experiment(
-        config, output_dir=tmp_path, generator=MockTextGenerator()
-    )
+    summary = run_ablation_experiment(config, output_dir=tmp_path, generator=MockTextGenerator())
     names = {contrast.name for contrast in summary.contrasts}
     assert names == {"delta_map", "delta_symbol"}
     # Mock answers everything correctly, so both contrasts are exactly zero.
@@ -104,18 +104,14 @@ def test_ablation_writes_artifacts(tmp_path: Path) -> None:
 
 def test_mock_backend_uses_gold_compression(tmp_path: Path) -> None:
     config = load_config(MOCK_CONFIG)
-    summary = run_ablation_experiment(
-        config, output_dir=tmp_path, generator=MockTextGenerator()
-    )
+    summary = run_ablation_experiment(config, output_dir=tmp_path, generator=MockTextGenerator())
     assert summary.compression.source == "gold"
     assert summary.compression.failures == 0
 
 
 def test_llm_backend_uses_llm_compressor(tmp_path: Path) -> None:
     config = load_config(LLM_CONFIG)
-    summary = run_ablation_experiment(
-        config, output_dir=tmp_path, generator=_FakeLlmGenerator()
-    )
+    summary = run_ablation_experiment(config, output_dir=tmp_path, generator=_FakeLlmGenerator())
     assert summary.compression.source == "llm"
     assert summary.compression.compressed == config.dataset.max_documents
     assert summary.compression.failures == 0

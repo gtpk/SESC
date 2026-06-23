@@ -11,7 +11,13 @@ from ism.experiments.compressor import (
 from ism.inference.contracts import GenerationRequest, GenerationResult
 from ism.representation.tokenizer import WhitespaceTokenCounter
 
-_VALID_ISM = "[DICTIONARY]\nZ1 := condition a\nZ2 := condition b\n\n[RELATIONS]\nZ1 Z2\n"
+_VALID_ISM = (
+    "[DICTIONARY]\n"
+    "Z1 := IF condition a THEN risk = HIGH\n"
+    "Z2 := IF condition b THEN review = true\n\n"
+    "[RELATIONS]\n"
+    "Z1 Z2\n"
+)
 
 
 class _ScriptedGenerator:
@@ -21,9 +27,7 @@ class _ScriptedGenerator:
         self._texts = list(texts)
         self.calls = 0
 
-    def generate(
-        self, requests: tuple[GenerationRequest, ...]
-    ) -> tuple[GenerationResult, ...]:
+    def generate(self, requests: tuple[GenerationRequest, ...]) -> tuple[GenerationResult, ...]:
         self.calls += 1
         text = self._texts.pop(0)
         return tuple(
@@ -42,6 +46,8 @@ def test_build_compression_prompt_has_format_and_budget() -> None:
     assert "[RELATIONS]" in prompt
     assert "128" in prompt
     assert "doc text" in prompt
+    assert "BOTH the trigger" in prompt
+    assert "THEN risk = HIGH" in prompt
 
 
 def test_compress_parses_valid_ism_on_first_attempt() -> None:
@@ -69,6 +75,45 @@ def test_compress_regenerates_after_malformed_output() -> None:
     ).compress(_document(), budget=128)
 
     assert outcome.attempts == 2
+
+
+def test_compress_regenerates_after_missing_conclusion_tokens() -> None:
+    missing_conclusion = (
+        "[DICTIONARY]\n"
+        "Z1 := marker_a high and marker_b low\n"
+        "Z2 := repair score above threshold\n\n"
+        "[RELATIONS]\n"
+        "Z1 Z2 => HIGH\n"
+    )
+    generator = _ScriptedGenerator([missing_conclusion, _VALID_ISM])
+    outcome = LlmCompressor(
+        generator,
+        tokenizer=WhitespaceTokenCounter(),
+        seed=42,
+        max_attempts=3,
+        max_new_tokens=256,
+    ).compress(_document(), budget=128)
+
+    assert outcome.attempts == 2
+
+
+def test_compress_raises_when_every_attempt_lacks_conclusion_tokens() -> None:
+    missing_conclusion = (
+        "[DICTIONARY]\n"
+        "Z1 := marker_a high and marker_b low\n"
+        "Z2 := repair score above threshold\n\n"
+        "[RELATIONS]\n"
+        "Z1 Z2 => HIGH\n"
+    )
+
+    with pytest.raises(CompressionError, match="missing_conclusion_tokens"):
+        LlmCompressor(
+            _ScriptedGenerator([missing_conclusion, missing_conclusion]),
+            tokenizer=WhitespaceTokenCounter(),
+            seed=42,
+            max_attempts=2,
+            max_new_tokens=256,
+        ).compress(_document(), budget=128)
 
 
 def test_compress_raises_after_exhausting_attempts() -> None:

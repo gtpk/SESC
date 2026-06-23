@@ -99,9 +99,7 @@ def run_ablation_experiment(
     write_condition_audit(audit_path, matrix)
 
     questions = {
-        question.question_id: question
-        for document in surviving
-        for question in document.questions
+        question.question_id: question for document in surviving for question in document.questions
     }
     samples = tuple(
         InferenceSample(
@@ -144,9 +142,7 @@ def run_ablation_experiment(
 
     contrasts: list[Contrast] = []
     for name, left, right in _CONTRASTS:
-        contrast = _contrast(
-            name, left, right, correct_by_condition, seed=config.experiment.seed
-        )
+        contrast = _contrast(name, left, right, correct_by_condition, seed=config.experiment.seed)
         if contrast is not None:
             contrasts.append(contrast)
 

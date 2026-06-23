@@ -64,3 +64,23 @@
 2. 내용 변경형 corruption(결론 반전) 구현 + 단위 테스트.
 3. 6.1 재실행(LLM 압축기 + 강한 corruption), §8.1.1 갱신.
 4. (후속) unconstrained reasoner probe로 정의 인용 여부 직접 확인.
+
+## 2026-06-23 후속 조치: 압축기 self-containment gate
+
+첫 번째 조치를 구현했다.
+
+- compression prompt에 "각 dictionary 정의는 trigger condition과 resulting conclusion/outcome을
+  모두 포함해야 한다"는 제약을 추가했다.
+- `parse_ism`을 통과한 뒤에도 `definition_self_containment(representation) < 1.0`이면 유효한
+  압축으로 보지 않고 `missing_conclusion_tokens` nudge로 재생성한다.
+- 형식은 맞지만 `Z1 := marker_a high and marker_b low`처럼 결론이 빠진 출력은 더 이상 6.1
+  ablation에 들어가지 않는다.
+- 관련 offline TC를 추가했고 전체 로컬 회귀는 185개 통과했다.
+
+다음 판단 기준:
+
+- `compress-audit`에서 LLM ISM의 `mean_self_containment`가 1.0에 가까워져야 한다.
+- 이 gate 이후에도 `rule_coverage`가 낮으면 prompt만이 아니라 출력 schema나 few-shot 예시를 더
+  강화해야 한다.
+- self-containment와 coverage가 개선된 뒤에도 Δmap≈0이면, 그때는 2차 원인인 corruption 설계를
+  내용 변경형으로 강화해 다시 측정한다.

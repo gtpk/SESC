@@ -12,6 +12,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 from ism.data.generator import GeneratedDocument
+from ism.experiments.diagnostics import definition_self_containment
 from ism.inference.contracts import GenerationRequest, TextGenerator
 from ism.representation.models import ISMRepresentation
 from ism.representation.parser import ISMParseError, parse_ism
@@ -40,7 +41,12 @@ def build_compression_prompt(document_text: str, *, budget: int, nudge: str | No
         "Rules:\n"
         "- Every symbol label is the letter Z followed by a number (Z1, Z2, ...).\n"
         "- Each [DICTIONARY] line must be exactly: LABEL := definition.\n"
-        "- Preserve conditions, exceptions, priorities, thresholds, and ordering.\n"
+        "- Each definition must be self-contained: include BOTH the trigger "
+        "condition(s) and the resulting conclusion/outcome.\n"
+        "- Do not place the conclusion only in [RELATIONS]; every symbol definition "
+        "must say what it implies, e.g. IF marker_a is high THEN risk = HIGH.\n"
+        "- Preserve conditions, conclusions, exceptions, priorities, thresholds, "
+        "and ordering.\n"
         "- Do NOT answer any question; produce a reusable representation.\n"
         f"- Keep the entire output within {budget} whitespace-separated tokens.\n"
     )
@@ -73,9 +79,7 @@ class LlmCompressor:
         for attempt in range(self.max_attempts):
             request = GenerationRequest(
                 request_id=f"{document.document_id}:compress:{attempt}",
-                prompt=build_compression_prompt(
-                    document.document_text, budget=budget, nudge=nudge
-                ),
+                prompt=build_compression_prompt(document.document_text, budget=budget, nudge=nudge),
                 max_new_tokens=self.max_new_tokens,
                 seed=self.seed + attempt,
             )
@@ -93,6 +97,14 @@ class LlmCompressor:
             except ISMParseError as error:
                 last_error = error.code.value
                 nudge = last_error
+                continue
+            containment = definition_self_containment(representation)
+            if containment < 1.0:
+                last_error = f"missing_conclusion_tokens: self_containment={containment:.2f}"
+                nudge = (
+                    "missing conclusions in one or more dictionary definitions; "
+                    "rewrite every LABEL := line as a complete IF condition THEN outcome rule"
+                )
                 continue
             return CompressionOutcome(representation=representation, attempts=attempt + 1)
         raise CompressionError(
